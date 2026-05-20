@@ -1,0 +1,25 @@
+{
+  "id": "intro",
+  "title": "What is TraceChain?",
+  "description": "TraceChain is a reliability-first observability framework for LLM workflows. It gives you full visibility into every step, every LLM call, every token spent, and every failure — without changing how you write your pipeline logic.",
+  "source": "@site/docs/intro.md",
+  "sourceDirName": ".",
+  "slug": "/",
+  "permalink": "/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "id": "intro",
+    "slug": "/",
+    "title": "What is TraceChain?",
+    "sidebar_position": 1
+  },
+  "sidebar": "mainSidebar",
+  "next": {
+    "title": "Installation",
+    "permalink": "/getting-started/installation"
+  }
+}

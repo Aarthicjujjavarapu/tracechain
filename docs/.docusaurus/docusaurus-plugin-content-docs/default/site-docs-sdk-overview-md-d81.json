@@ -1,0 +1,28 @@
+{
+  "id": "sdk/overview",
+  "title": "SDK Overview",
+  "description": "The TraceChain SDK is a zero-friction instrumentation library for Python. It uses decorators and context variables so you add observability by annotating functions — not by threading IDs through every call.",
+  "source": "@site/docs/sdk/overview.md",
+  "sourceDirName": "sdk",
+  "slug": "/sdk/overview",
+  "permalink": "/sdk/overview",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "id": "overview",
+    "title": "SDK Overview",
+    "sidebar_position": 1
+  },
+  "sidebar": "mainSidebar",
+  "previous": {
+    "title": "Configuration",
+    "permalink": "/getting-started/configuration"
+  },
+  "next": {
+    "title": "@workflow",
+    "permalink": "/sdk/workflow"
+  }
+}

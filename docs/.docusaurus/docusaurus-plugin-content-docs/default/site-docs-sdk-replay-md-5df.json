@@ -1,0 +1,28 @@
+{
+  "id": "sdk/replay",
+  "title": "Replay",
+  "description": "Replay lets you re-execute a previous workflow run with the same input. The new run is linked to the original so you can compare outputs, costs, and quality scores side by side.",
+  "source": "@site/docs/sdk/replay.md",
+  "sourceDirName": "sdk",
+  "slug": "/sdk/replay",
+  "permalink": "/sdk/replay",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 6,
+  "frontMatter": {
+    "id": "replay",
+    "title": "Replay",
+    "sidebar_position": 6
+  },
+  "sidebar": "mainSidebar",
+  "previous": {
+    "title": "Evaluations",
+    "permalink": "/sdk/evaluations"
+  },
+  "next": {
+    "title": "Tracing Context",
+    "permalink": "/sdk/tracing"
+  }
+}

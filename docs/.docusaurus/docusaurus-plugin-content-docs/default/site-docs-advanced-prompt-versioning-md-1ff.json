@@ -1,0 +1,24 @@
+{
+  "id": "advanced/prompt-versioning",
+  "title": "Prompt Versioning",
+  "description": "TraceChain includes a prompt registry — a versioned store of prompt templates. Link each @llm_step to a stored version and see per-version quality metrics in the dashboard.",
+  "source": "@site/docs/advanced/prompt-versioning.md",
+  "sourceDirName": "advanced",
+  "slug": "/advanced/prompt-versioning",
+  "permalink": "/advanced/prompt-versioning",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 3,
+  "frontMatter": {
+    "id": "prompt-versioning",
+    "title": "Prompt Versioning",
+    "sidebar_position": 3
+  },
+  "sidebar": "mainSidebar",
+  "previous": {
+    "title": "Context Propagation",
+    "permalink": "/advanced/context-propagation"
+  }
+}

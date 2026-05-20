@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+# ── project metadata (PEP 621) ────────────────────────────────────────────────
+
+[project]
+name = "tracechain"
+dynamic = ["version"]
+description = "Reliability-first orchestration framework for LLM workflows"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "TraceChain", email = "aarthij029@gmail.com" }]
+keywords = [
+    "llm", "observability", "tracing", "evaluation",
+    "openai", "langchain", "workflow", "ai",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "httpx>=0.27.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+openai    = ["openai>=1.0.0"]
+anthropic = ["anthropic>=0.25.0"]
+otel      = ["opentelemetry-api>=1.20.0", "opentelemetry-sdk>=1.20.0"]
+all       = ["openai>=1.0.0", "anthropic>=0.25.0", "opentelemetry-api>=1.20.0", "opentelemetry-sdk>=1.20.0"]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-mock>=3.14.0",
+    "openai>=1.0.0",
+    "anthropic>=0.25.0",
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+]
+
+[project.urls]
+Homepage   = "https://github.com/Aarthicjujjavarapu/tracechain"
+Repository = "https://github.com/Aarthicjujjavarapu/tracechain"
+Issues     = "https://github.com/Aarthicjujjavarapu/tracechain/issues"
+
+# ── dynamic version — read from tracechain/__init__.py ───────────────────────
+
+[tool.setuptools.dynamic]
+version = { attr = "tracechain.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tracechain*"]
+
+[tool.setuptools.package-data]
+tracechain = ["py.typed"]
+
+# ── pytest (replaces pytest.ini) ──────────────────────────────────────────────
+
+[tool.pytest.ini_options]
+testpaths   = ["tests"]
+python_files  = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts     = "-v --tb=short"

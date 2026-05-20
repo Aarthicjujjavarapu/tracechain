@@ -1,0 +1,28 @@
+{
+  "id": "sdk/tracing",
+  "title": "Tracing Context",
+  "description": "TraceChain propagates runid and stepid through Python's contextvars module. You rarely need to interact with these directly, but they are useful for custom logging, manual backend calls, or advanced integrations.",
+  "source": "@site/docs/sdk/tracing.md",
+  "sourceDirName": "sdk",
+  "slug": "/sdk/tracing",
+  "permalink": "/sdk/tracing",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 7,
+  "frontMatter": {
+    "id": "tracing",
+    "title": "Tracing Context",
+    "sidebar_position": 7
+  },
+  "sidebar": "mainSidebar",
+  "previous": {
+    "title": "Replay",
+    "permalink": "/sdk/replay"
+  },
+  "next": {
+    "title": "Backend Overview",
+    "permalink": "/backend/overview"
+  }
+}

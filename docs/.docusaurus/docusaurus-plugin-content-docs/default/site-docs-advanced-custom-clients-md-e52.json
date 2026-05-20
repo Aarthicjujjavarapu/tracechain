@@ -1,0 +1,28 @@
+{
+  "id": "advanced/custom-clients",
+  "title": "Custom Clients",
+  "description": "By default, every TraceChain decorator uses a singleton client configured from environment variables. You can override this with a custom TraceChainClient for more control.",
+  "source": "@site/docs/advanced/custom-clients.md",
+  "sourceDirName": "advanced",
+  "slug": "/advanced/custom-clients",
+  "permalink": "/advanced/custom-clients",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "id": "custom-clients",
+    "title": "Custom Clients",
+    "sidebar_position": 1
+  },
+  "sidebar": "mainSidebar",
+  "previous": {
+    "title": "Environment Variables",
+    "permalink": "/deployment/environment-variables"
+  },
+  "next": {
+    "title": "Context Propagation",
+    "permalink": "/advanced/context-propagation"
+  }
+}

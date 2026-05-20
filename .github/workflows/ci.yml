@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs on the same branch when a new push arrives
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── SDK tests (matrix: Python 3.9 → 3.12) ─────────────────────────────────
+  sdk-tests:
+    name: SDK Tests / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: sdk/pyproject.toml
+
+      - name: Install SDK + dev dependencies
+        run: pip install -e ".[dev]"
+        working-directory: sdk
+
+      - name: Run tests
+        run: pytest --tb=short
+        working-directory: sdk
+
+  # ── Dashboard TypeScript check ─────────────────────────────────────────────
+  dashboard-typecheck:
+    name: Dashboard / TypeScript
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: dashboard
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+        working-directory: dashboard
+
+  # ── Backend lint (ruff) ────────────────────────────────────────────────────
+  backend-lint:
+    name: Backend / Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint
+        run: ruff check app/
+        working-directory: backend
+
+  # ── All-green gate (required status check) ────────────────────────────────
+  ci:
+    name: CI
+    needs: [sdk-tests, dashboard-typecheck, backend-lint]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: All jobs passed
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            echo "One or more jobs failed"
+            exit 1
+          fi
+          echo "All jobs passed"
