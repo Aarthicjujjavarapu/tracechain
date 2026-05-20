@@ -19,6 +19,9 @@ from opentelemetry.trace import StatusCode
 
 import tracechain
 import tracechain.otel as _omod
+import tracechain.workflow as _wf_mod
+import tracechain.steps as _steps_mod
+import tracechain.llm as _llm_mod
 from tracechain.otel import configure_otel, _OTEL_AVAILABLE
 
 
@@ -66,7 +69,7 @@ def test_workflow_emits_span(exporter):
     def wf(x):
         return x * 2
 
-    with patch("tracechain.workflow.get_default_client") as mc:
+    with patch.object(_wf_mod, "get_default_client") as mc:
         mc.return_value.create_run.return_value = None
         wf(3)
 
@@ -78,7 +81,7 @@ def test_workflow_span_name_attribute(exporter):
     def wf():
         return "ok"
 
-    with patch("tracechain.workflow.get_default_client") as mc:
+    with patch.object(_wf_mod, "get_default_client") as mc:
         mc.return_value.create_run.return_value = None
         wf()
 
@@ -92,7 +95,7 @@ def test_workflow_status_ok(exporter):
     def wf():
         return "done"
 
-    with patch("tracechain.workflow.get_default_client") as mc:
+    with patch.object(_wf_mod, "get_default_client") as mc:
         mc.return_value.create_run.return_value = None
         wf()
 
@@ -104,7 +107,7 @@ def test_workflow_status_error(exporter):
     def wf():
         raise ValueError("boom")
 
-    with patch("tracechain.workflow.get_default_client") as mc:
+    with patch.object(_wf_mod, "get_default_client") as mc:
         mc.return_value.create_run.return_value = None
         with pytest.raises(ValueError):
             wf()
@@ -117,7 +120,7 @@ def test_async_workflow_emits_span(exporter):
     async def wf():
         return "done"
 
-    with patch("tracechain.workflow.get_default_client") as mc:
+    with patch.object(_wf_mod, "get_default_client") as mc:
         mc.return_value.create_run.return_value = None
         asyncio.run(wf())
 
@@ -215,9 +218,9 @@ def test_workflow_step_llm_are_nested(exporter):
         retrieve(q)
         return gen(q)
 
-    with patch("tracechain.workflow.get_default_client") as wf_mc, \
-         patch("tracechain.steps.get_default_client") as step_mc, \
-         patch("tracechain.llm.get_default_client") as llm_mc:
+    with patch.object(_wf_mod, "get_default_client") as wf_mc, \
+         patch.object(_steps_mod, "get_default_client") as step_mc, \
+         patch.object(_llm_mod, "get_default_client") as llm_mc:
         wf_mc.return_value.create_run.return_value = None
         step_mc.return_value.create_step.return_value = None
         llm_mc.return_value.create_step.return_value = None
