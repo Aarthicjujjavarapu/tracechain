@@ -17,12 +17,19 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.trace import StatusCode
 
+import sys
 import tracechain
 import tracechain.otel as _omod
-import tracechain.workflow as _wf_mod
+import tracechain.workflow   # loads module into sys.modules
 import tracechain.steps as _steps_mod
 import tracechain.llm as _llm_mod
 from tracechain.otel import configure_otel, _OTEL_AVAILABLE
+
+# tracechain.__init__ does `from .workflow import workflow`, which shadows the
+# `tracechain.workflow` *attribute* with the function.  `import x.y as z` does
+# an attribute lookup on x, so it returns the function, not the module.
+# Pull the real module object directly from sys.modules instead.
+_wf_mod = sys.modules['tracechain.workflow']
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
