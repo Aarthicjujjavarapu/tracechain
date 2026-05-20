@@ -215,11 +215,9 @@ def test_workflow_step_llm_are_nested(exporter):
         retrieve(q)
         return gen(q)
 
-    with (
-        patch("tracechain.workflow.get_default_client") as wf_mc,
-        patch("tracechain.steps.get_default_client") as step_mc,
-        patch("tracechain.llm.get_default_client") as llm_mc,
-    ):
+    with patch("tracechain.workflow.get_default_client") as wf_mc, \
+         patch("tracechain.steps.get_default_client") as step_mc, \
+         patch("tracechain.llm.get_default_client") as llm_mc:
         wf_mc.return_value.create_run.return_value = None
         step_mc.return_value.create_step.return_value = None
         llm_mc.return_value.create_step.return_value = None
