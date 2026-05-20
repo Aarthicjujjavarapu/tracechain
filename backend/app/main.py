@@ -47,6 +47,9 @@ app.add_middleware(
 
 # ── Routers ──────────────────────────────────────────────────────────────────
 from .routes import health, runs, steps, llm_calls, prompts, evaluations, feedback, metrics  # noqa: E402
+from .routes import ingest, graph  # noqa: E402
+from .ws.manager import manager as ws_manager  # noqa: E402
+from fastapi import WebSocket, WebSocketDisconnect, Query  # noqa: E402
 
 app.include_router(health.router)
 app.include_router(runs.router)
@@ -56,8 +59,32 @@ app.include_router(prompts.router)
 app.include_router(evaluations.router)
 app.include_router(feedback.router)
 app.include_router(metrics.router)
+app.include_router(ingest.router)
+app.include_router(graph.router)
+
+
+@app.websocket("/ws/live")
+async def websocket_live(
+    ws: WebSocket,
+    run_id: str = Query(None),
+):
+    """
+    Real-time event stream. Connect to receive TraceEvents as they are ingested.
+    Optional ?run_id=<id> filter to scope to a specific run.
+    """
+    await ws_manager.connect(ws, run_id_filter=run_id)
+    try:
+        await ws_manager.send_loop(ws)
+    except WebSocketDisconnect:
+        ws_manager.disconnect(ws)
 
 
 @app.get("/")
 def root():
-    return {"name": "TraceChain API", "version": "0.1.0", "docs": "/docs"}
+    return {
+        "name":    "TraceChain API",
+        "version": "0.1.0",
+        "docs":    "/docs",
+        "ws":      "/ws/live",
+        "ingest":  "/v1/ingest/batch",
+    }

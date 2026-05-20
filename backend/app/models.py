@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, String, Text, Boolean, Integer, Float,
+    Column, String, Text, Boolean, Integer, Float, BigInteger,
     DateTime, ForeignKey, Enum as SAEnum
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -149,3 +149,28 @@ class HumanFeedback(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, default=_now)
 
     run = relationship("WorkflowRun", back_populates="feedback")
+
+
+class SpanEvent(Base):
+    """
+    Raw span events ingested from the SDK via POST /v1/ingest/batch.
+
+    This table is the source of truth for the agent graph, diagnostics,
+    and real-time streaming. It is append-only — spans are never updated.
+    """
+    __tablename__ = "span_events"
+
+    id             = Column(Integer, primary_key=True, autoincrement=True)
+    span_id        = Column(String(64),  nullable=False, index=True)
+    trace_id       = Column(String(64),  nullable=False, index=True)
+    parent_span_id = Column(String(64),  nullable=True,  index=True)
+    run_id         = Column(String(64),  nullable=True,  index=True)
+    name           = Column(String(255), nullable=False)
+    kind           = Column(String(64),  nullable=False, default="step")
+    event_type     = Column(String(64),  nullable=False)
+    status         = Column(String(32),  nullable=False, default="unset")
+    error_message  = Column(Text,        nullable=True)
+    attributes     = Column(JSONB,       nullable=True,  default=dict)
+    timestamp_ns   = Column(BigInteger,  nullable=False, default=0)
+    duration_ns    = Column(BigInteger,  nullable=True)
+    created_at     = Column(DateTime(timezone=True), nullable=False, default=_now)
