@@ -27,7 +27,7 @@ export default function Sidebar() {
           </div>
           <span className="font-semibold text-white text-sm tracking-tight">TraceChain</span>
         </div>
-        <p className="text-[11px] text-slate-500 mt-1 ml-9">LLM Observability</p>
+        <p className="text-[11px] text-slate-500 mt-1 ml-9">AI Reliability Platform</p>
       </div>
 
       {/* Nav */}
@@ -63,7 +63,15 @@ export default function Sidebar() {
             {online === null ? "checking…" : online ? "backend online" : "backend offline"}
           </p>
         </div>
-        <p className="text-[11px] text-slate-700 mt-1">v0.1.0</p>
+        <a
+          href="https://github.com/Aarthicjujjavarapu/tracechain"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[11px] text-slate-700 hover:text-slate-500 transition-colors mt-1 block"
+        >
+          GitHub ↗
+        </a>
+        <p className="text-[11px] text-slate-700">v0.1.0</p>
       </div>
     </aside>
   );
