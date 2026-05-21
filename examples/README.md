@@ -42,6 +42,20 @@ python examples/02_support_agent.py "How do I cancel my subscription?"
 - `@step` with `retries=2` for resilient KB lookup
 - Multiple runs to compare quality scores in the dashboard
 
+## Example 3 — Streaming LLM with Tool Calling
+
+A two-step agent that plans a tool call (streaming), executes it, then synthesises the result into a final answer (non-streaming).
+
+```bash
+python examples/03_streaming_llm.py
+```
+
+**What it demonstrates:**
+- `observe_llm()` in streaming mode with `is_stream=True`
+- `obs.on_chunk()` for time-to-first-token (TTFT) tracking
+- Tool call attributes recorded in span metadata
+- Two chained LLM calls in one workflow showing streaming vs. non-streaming contrast
+
 ## Viewing traces
 
 Open [http://localhost:3000](http://localhost:3000) after running either example.
