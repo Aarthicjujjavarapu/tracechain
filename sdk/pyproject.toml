@@ -9,7 +9,7 @@ name = "tracechain"
 dynamic = ["version"]
 description = "Reliability-first orchestration framework for LLM workflows"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "TraceChain", email = "aarthij029@gmail.com" }]
 keywords = [
     "llm", "observability", "tracing", "evaluation",
@@ -18,7 +18,6 @@ keywords = [
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",

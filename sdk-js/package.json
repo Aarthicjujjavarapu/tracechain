@@ -15,7 +15,7 @@
   "homepage": "https://github.com/Aarthicjujjavarapu/tracechain",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Aarthicjujjavarapu/tracechain.git"
+    "url": "git+https://github.com/Aarthicjujjavarapu/tracechain.git"
   },
   "bugs": {
     "url": "https://github.com/Aarthicjujjavarapu/tracechain/issues"
