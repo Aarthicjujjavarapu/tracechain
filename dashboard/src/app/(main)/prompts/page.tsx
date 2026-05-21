@@ -2,15 +2,20 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Card from "@/components/ui/Card";
+import PromptDiff from "@/components/prompts/PromptDiff";
 import { api } from "@/lib/api";
 import type { PromptVersion } from "@/types";
 import { format } from "date-fns";
+
+type DiffState = { leftId: string; rightId: string };
 
 export default function PromptsPage() {
   const [prompts, setPrompts] = useState<PromptVersion[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ prompt_name: "", version: "", prompt_text: "" });
+  // promptName → { leftId, rightId }
+  const [diffs, setDiffs] = useState<Record<string, DiffState>>({});
 
   const load = () => {
     setLoading(true);
@@ -86,48 +91,135 @@ export default function PromptsPage() {
           <p className="text-slate-500 text-sm text-center py-6">No prompt versions yet. Create one above.</p>
         </Card>
       ) : (
-        Object.entries(grouped).map(([name, versions]) => (
-          <Card key={name} padding="none">
-            <div className="px-5 py-3.5 border-b border-[#252b3b]">
-              <h3 className="font-medium text-slate-200 text-sm">{name}</h3>
-              <p className="text-xs text-slate-500 mt-0.5">{versions.length} version(s)</p>
-            </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#1e2235]">
-                  {["Version","Status","Created","Preview",""].map((h) => (
-                    <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {versions.sort((a, b) => a.version.localeCompare(b.version)).map((p) => (
-                  <tr key={p.id} className="border-b border-[#1e2235] hover:bg-white/[0.02] transition-colors">
-                    <td className="px-5 py-3.5">
-                      <span className="font-mono text-xs bg-[#252b3b] px-2 py-1 rounded text-slate-300">{p.version}</span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={`text-xs font-medium ${p.is_active ? "text-emerald-400" : "text-slate-600"}`}>
-                        {p.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-500 text-xs">
-                      {format(new Date(p.created_at), "MMM d, yyyy")}
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-500 text-xs max-w-xs truncate">
-                      {p.prompt_text.slice(0, 80)}…
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <Link href={`/prompts/${p.id}`} className="text-brand-400 text-xs hover:text-brand-300 font-medium">
-                        View →
-                      </Link>
-                    </td>
+        Object.entries(grouped).map(([name, rawVersions]) => {
+          const versions = [...rawVersions].sort((a, b) => a.version.localeCompare(b.version));
+          const diff = diffs[name];
+          const canCompare = versions.length >= 2;
+
+          function openDiff() {
+            setDiffs((prev) => ({
+              ...prev,
+              [name]: {
+                leftId:  versions[0].id,
+                rightId: versions[1].id,
+              },
+            }));
+          }
+          function closeDiff() {
+            setDiffs((prev) => { const n = { ...prev }; delete n[name]; return n; });
+          }
+
+          const leftPv  = diff ? versions.find((v) => v.id === diff.leftId)  ?? versions[0] : null;
+          const rightPv = diff ? versions.find((v) => v.id === diff.rightId) ?? versions[1] : null;
+
+          return (
+            <Card key={name} padding="none">
+              {/* Header */}
+              <div className="px-5 py-3.5 border-b border-[#252b3b] flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-medium text-slate-200 text-sm">{name}</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">{versions.length} version(s)</p>
+                </div>
+                {canCompare && (
+                  diff ? (
+                    <button
+                      onClick={closeDiff}
+                      className="text-xs text-slate-500 hover:text-slate-300 px-3 py-1.5 border border-[#252b3b] rounded-lg transition-colors"
+                    >
+                      Close diff
+                    </button>
+                  ) : (
+                    <button
+                      onClick={openDiff}
+                      className="text-xs text-brand-400 hover:text-brand-300 px-3 py-1.5 border border-brand-500/30 rounded-lg transition-colors flex items-center gap-1.5"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 14 14">
+                        <rect x="1" y="2" width="5" height="10" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+                        <rect x="8" y="2" width="5" height="10" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+                        <line x1="3.5" y1="5" x2="3.5" y2="5" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round"/>
+                        <line x1="10.5" y1="5" x2="10.5" y2="5" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                      Compare
+                    </button>
+                  )
+                )}
+              </div>
+
+              {/* Version table */}
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#1e2235]">
+                    {["Version", "Status", "Created", "Preview", ""].map((h) => (
+                      <th key={h} className="text-left px-5 py-3 text-xs text-slate-500 font-medium uppercase tracking-wider">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        ))
+                </thead>
+                <tbody>
+                  {versions.map((p) => (
+                    <tr key={p.id} className="border-b border-[#1e2235] hover:bg-white/[0.02] transition-colors">
+                      <td className="px-5 py-3.5">
+                        <span className="font-mono text-xs bg-[#252b3b] px-2 py-1 rounded text-slate-300">{p.version}</span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className={`text-xs font-medium ${p.is_active ? "text-emerald-400" : "text-slate-600"}`}>
+                          {p.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-500 text-xs">
+                        {format(new Date(p.created_at), "MMM d, yyyy")}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-500 text-xs max-w-xs truncate">
+                        {p.prompt_text.slice(0, 80)}{p.prompt_text.length > 80 ? "…" : ""}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <Link href={`/prompts/${p.id}`} className="text-brand-400 text-xs hover:text-brand-300 font-medium">
+                          View →
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Inline diff panel */}
+              {diff && leftPv && rightPv && (
+                <div className="border-t border-[#252b3b] px-5 py-5 space-y-4">
+                  {/* Version selectors */}
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">From</span>
+                      <select
+                        value={diff.leftId}
+                        onChange={(e) => setDiffs((prev) => ({ ...prev, [name]: { ...prev[name], leftId: e.target.value } }))}
+                        className="bg-[#13151f] border border-[#252b3b] text-slate-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-500"
+                      >
+                        {versions.map((v) => (
+                          <option key={v.id} value={v.id}>{v.version}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <span className="text-slate-600 text-xs">→</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">To</span>
+                      <select
+                        value={diff.rightId}
+                        onChange={(e) => setDiffs((prev) => ({ ...prev, [name]: { ...prev[name], rightId: e.target.value } }))}
+                        className="bg-[#13151f] border border-[#252b3b] text-slate-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-500"
+                      >
+                        {versions.map((v) => (
+                          <option key={v.id} value={v.id}>{v.version}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Diff renderer */}
+                  <PromptDiff left={leftPv} right={rightPv} />
+                </div>
+              )}
+            </Card>
+          );
+        })
       )}
     </div>
   );
