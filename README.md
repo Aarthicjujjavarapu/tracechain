@@ -52,6 +52,9 @@ def generate(query: str, docs: list[str]) -> str:
 ![Metrics](docs/static/img/metrics.png)
 *14-day charts for runs, latency, cost, tokens, quality score, and success rate*
 
+![Agent Graph](docs/static/img/agent-graph.png)
+*ReactFlow agent execution graph — workflow → steps → LLM calls with duration, token, and cost badges*
+
 ---
 
 ## Installation
