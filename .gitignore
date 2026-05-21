@@ -20,6 +20,8 @@ node_modules/
 .next/
 out/
 *.tsbuildinfo
+docs/.docusaurus/
+docs/build/
 
 # Database
 *.sqlite
