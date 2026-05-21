@@ -22,7 +22,7 @@ TraceChain has three components. You need all three for a complete setup, but yo
 ## 1. Clone the repository
 
 ```bash
-git clone https://github.com/tracechain/tracechain.git
+git clone https://github.com/Aarthicjujjavarapu/tracechain.git
 cd tracechain
 ```
 

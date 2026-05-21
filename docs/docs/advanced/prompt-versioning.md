@@ -145,4 +145,4 @@ curl -X PATCH http://localhost:8000/prompts/{new_id} \
 
 - [`@llm_step`](../sdk/llm-step) — the `prompt_version` parameter
 - [API reference — prompts](../backend/api-reference#prompts)
-- [Dashboard — Prompts page](../dashboard/overview#prompts---prompts)
+- [Dashboard — Prompts page](../dashboard/overview#prompts)

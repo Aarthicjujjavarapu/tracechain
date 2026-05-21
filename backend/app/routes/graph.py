@@ -6,9 +6,6 @@ GET /v1/runs/{run_id}/diagnostics  →  retry chains, latency, tokens, context w
 """
 from __future__ import annotations
 
-import sys
-import os
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -114,7 +111,6 @@ def _build_graph_without_sdk(spans) -> dict:
     """Fallback graph builder when SDK isn't importable in the backend venv."""
     nodes = []
     edges = []
-    seen_parents: set[str] = set()
 
     for s in sorted(spans, key=lambda x: x.timestamp_ns or 0):
         nodes.append({

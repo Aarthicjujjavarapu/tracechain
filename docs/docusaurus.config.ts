@@ -7,10 +7,10 @@ const config: Config = {
   tagline: "Reliability-first observability for LLM workflows",
   favicon: "img/favicon.ico",
 
-  url: "https://tracechain.dev",
-  baseUrl: "/",
+  url: "https://Aarthicjujjavarapu.github.io",
+  baseUrl: "/tracechain/",
 
-  organizationName: "tracechain",
+  organizationName: "Aarthicjujjavarapu",
   projectName: "tracechain",
 
   onBrokenLinks: "throw",
@@ -57,7 +57,7 @@ const config: Config = {
           label: "Docs",
         },
         {
-          href: "https://github.com/tracechain/tracechain",
+          href: "https://github.com/Aarthicjujjavarapu/tracechain",
           label: "GitHub",
           position: "right",
         },
@@ -77,7 +77,7 @@ const config: Config = {
         {
           title: "Project",
           items: [
-            { label: "GitHub", href: "https://github.com/tracechain/tracechain" },
+            { label: "GitHub", href: "https://github.com/Aarthicjujjavarapu/tracechain" },
           ],
         },
       ],

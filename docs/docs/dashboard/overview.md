@@ -85,7 +85,7 @@ Star rating widget — submit 1–5 stars with an optional comment. Existing rat
 
 ---
 
-### Prompts — `/prompts`
+### Prompts — `/prompts` {#prompts}
 
 Table of all prompt versions:
 
