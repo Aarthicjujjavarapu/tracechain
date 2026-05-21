@@ -57,7 +57,8 @@ def complete_run(db: Session, run_id: str, data: RunComplete) -> WorkflowRun:
     now = datetime.now(timezone.utc)
     run.status = RunStatus.success
     run.ended_at = now
-    run.duration_ms = int((now - run.started_at).total_seconds() * 1000)
+    started = run.started_at if run.started_at.tzinfo else run.started_at.replace(tzinfo=timezone.utc)
+    run.duration_ms = int((now - started).total_seconds() * 1000)
     if data.output_payload is not None:
         run.output_payload = data.output_payload
     if data.total_cost is not None:
@@ -74,7 +75,8 @@ def fail_run(db: Session, run_id: str, data: RunFail) -> WorkflowRun:
     now = datetime.now(timezone.utc)
     run.status = RunStatus.failed
     run.ended_at = now
-    run.duration_ms = int((now - run.started_at).total_seconds() * 1000)
+    started = run.started_at if run.started_at.tzinfo else run.started_at.replace(tzinfo=timezone.utc)
+    run.duration_ms = int((now - started).total_seconds() * 1000)
     run.error_message = data.error_message
     db.commit()
     db.refresh(run)

@@ -45,7 +45,8 @@ def complete_step(db: Session, step_id: str, output_payload: dict, duration_ms: 
     step.ended_at = now
     step.output_payload = output_payload
     step.retry_count = retry_count
-    step.duration_ms = duration_ms or int((now - step.started_at).total_seconds() * 1000)
+    started = step.started_at if step.started_at.tzinfo else step.started_at.replace(tzinfo=timezone.utc)
+    step.duration_ms = duration_ms or int((now - started).total_seconds() * 1000)
     db.commit()
     db.refresh(step)
     return step
@@ -58,7 +59,8 @@ def fail_step(db: Session, step_id: str, error_message: str, retry_count: int) -
     step.ended_at = now
     step.error_message = error_message
     step.retry_count = retry_count
-    step.duration_ms = int((now - step.started_at).total_seconds() * 1000)
+    started = step.started_at if step.started_at.tzinfo else step.started_at.replace(tzinfo=timezone.utc)
+    step.duration_ms = int((now - started).total_seconds() * 1000)
     db.commit()
     db.refresh(step)
     return step

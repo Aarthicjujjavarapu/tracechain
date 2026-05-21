@@ -85,6 +85,28 @@ jobs:
         run: npx tsc --noEmit
         working-directory: dashboard
 
+  # ── Backend API tests ─────────────────────────────────────────────────────
+  backend-tests:
+    name: Backend / API Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+        working-directory: backend
+
+      - name: Run tests
+        run: pytest tests/ --tb=short
+        working-directory: backend
+
   # ── Backend lint (ruff) ────────────────────────────────────────────────────
   backend-lint:
     name: Backend / Lint
@@ -110,7 +132,7 @@ jobs:
   # ── All-green gate (required status check) ────────────────────────────────
   ci:
     name: CI
-    needs: [sdk-tests, sdk-js-tests, dashboard-typecheck, backend-lint]
+    needs: [sdk-tests, sdk-js-tests, dashboard-typecheck, backend-lint, backend-tests]
     runs-on: ubuntu-latest
     if: always()
     steps:
