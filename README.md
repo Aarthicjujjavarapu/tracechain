@@ -1,5 +1,12 @@
 # TraceChain
 
+[![CI](https://github.com/Aarthicjujjavarapu/tracechain/actions/workflows/ci.yml/badge.svg)](https://github.com/Aarthicjujjavarapu/tracechain/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/tracechain)](https://pypi.org/project/tracechain/)
+[![npm](https://img.shields.io/npm/v/@tracechain/sdk)](https://www.npmjs.com/package/@tracechain/sdk)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://pypi.org/project/tracechain/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://Aarthicjujjavarapu.github.io/tracechain/)
+
 Observability for LLM workflows. Trace runs, steps, and model calls with full support for streaming, async, retries, tool calling, and multi-turn conversations.
 
 ```python
@@ -291,18 +298,15 @@ cd dashboard && npm install && npm run dev
 
 ---
 
-## What TraceChain does not do
+## Scope boundaries
 
-These are deliberate scope boundaries, not gaps:
+These are deliberate out-of-scope items:
 
-- **Prompt management** — no versioned prompt registry
-- **Dataset management** — no ground-truth storage or comparison runs
-- **Human feedback** — no annotation UI
-- **Automatic evaluation** — no LLM-as-judge (bring your own scorer via `evaluate_run`)
+- **Automatic evaluation** — no LLM-as-judge; bring your own scorer via `evaluate_run`
 - **Sampling** — every invocation is traced; no configurable sample rate
 - **Multi-tenancy** — no projects, organizations, or API key management
 
-For a hosted solution with these features, see [LangSmith](https://smith.langchain.com), [Langfuse](https://langfuse.com), or [Helicone](https://helicone.ai).
+For a fully hosted solution, see [LangSmith](https://smith.langchain.com), [Langfuse](https://langfuse.com), or [Helicone](https://helicone.ai).
 
 ---
 
