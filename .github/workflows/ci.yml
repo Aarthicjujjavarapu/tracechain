@@ -39,6 +39,29 @@ jobs:
         run: pytest --tb=short
         working-directory: sdk
 
+  # ── JS SDK tests ──────────────────────────────────────────────────────────
+  sdk-js-tests:
+    name: SDK JS / Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: sdk-js/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: sdk-js
+
+      - name: Run tests
+        run: npm test
+        working-directory: sdk-js
+
   # ── Dashboard TypeScript check ─────────────────────────────────────────────
   dashboard-typecheck:
     name: Dashboard / TypeScript
@@ -87,7 +110,7 @@ jobs:
   # ── All-green gate (required status check) ────────────────────────────────
   ci:
     name: CI
-    needs: [sdk-tests, dashboard-typecheck, backend-lint]
+    needs: [sdk-tests, sdk-js-tests, dashboard-typecheck, backend-lint]
     runs-on: ubuntu-latest
     if: always()
     steps:

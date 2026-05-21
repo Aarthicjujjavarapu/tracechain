@@ -11,6 +11,7 @@ import LLMCallCard from "@/components/runs/LLMCallCard";
 import ReplayHistory from "@/components/runs/ReplayHistory";
 import ComparePanel from "@/components/runs/ComparePanel";
 import DiagnosticsPanel from "@/components/diagnostics/DiagnosticsPanel";
+import LiveFeed from "@/components/runs/LiveFeed";
 import { api } from "@/lib/api";
 import type {
   WorkflowRun, TraceStep, LLMCall, EvaluationResult,
@@ -21,7 +22,7 @@ import { format } from "date-fns";
 // ReactFlow uses browser-only APIs — must be dynamically imported
 const AgentGraph = dynamic(() => import("@/components/graph/AgentGraph"), { ssr: false });
 
-type Tab = "graph" | "trace" | "diagnostics" | "llm" | "eval" | "io";
+type Tab = "graph" | "trace" | "diagnostics" | "llm" | "eval" | "io" | "live";
 
 export default function RunDetailPage() {
   const { id }  = useParams<{ id: string }>();
@@ -127,6 +128,7 @@ export default function RunDetailPage() {
   const TABS: { key: Tab; label: string; badge?: string }[] = [
     { key: "graph",       label: "Agent Graph"                                            },
     { key: "trace",       label: "Trace Timeline"                                         },
+    { key: "live",        label: "Live Feed", badge: run.status === "running" ? "LIVE" : undefined },
     { key: "diagnostics", label: "Diagnostics",  badge: diagnostics ? "NEW" : undefined   },
     { key: "llm",         label: `LLM Calls (${llmCalls.length})`                         },
     { key: "eval",        label: "Evaluation"                                             },
@@ -250,6 +252,13 @@ export default function RunDetailPage() {
               </p>
             </div>
           )}
+        </Card>
+      )}
+
+      {activeTab === "live" && (
+        <Card padding="sm">
+          <h2 className="text-sm font-medium text-slate-300 mb-4">Live Event Stream</h2>
+          <LiveFeed runId={id} isRunning={run.status === "running"} />
         </Card>
       )}
 
