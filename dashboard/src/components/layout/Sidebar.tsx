@@ -21,8 +21,11 @@ export default function Sidebar() {
       <div className="px-5 py-5 border-b border-[#1e2235]">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <path d="M2 8h12M8 2v12M4 4l8 8M12 4l-8 8" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+            {/* chain-link mark — matches docs logo */}
+            <svg width="18" height="14" viewBox="0 0 24 16" fill="none">
+              <rect x="1" y="4" width="9" height="8" rx="4" stroke="white" strokeWidth="2"/>
+              <rect x="14" y="4" width="9" height="8" rx="4" stroke="white" strokeWidth="2"/>
+              <line x1="10" y1="8" x2="14" y2="8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
           <span className="font-semibold text-white text-sm tracking-tight">TraceChain</span>

@@ -4,6 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "TraceChain — LLM Observability",
   description: "Reliability-first orchestration framework for AI workflows",
+  icons: { icon: "/favicon.ico" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
