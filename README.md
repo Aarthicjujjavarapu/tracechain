@@ -35,6 +35,25 @@ def generate(query: str, docs: list[str]) -> str:
 
 ---
 
+## Dashboard
+
+![Dashboard Overview](docs/static/img/dashboard-overview.png)
+*KPI cards — total runs, success rate, avg latency, cost, tokens, failures — with 14-day trend charts*
+
+![Runs List](docs/static/img/runs-list.png)
+*88 workflow executions with sortable duration, cost, and token columns. Filter by status, workflow name, or replay.*
+
+![Trace Timeline](docs/static/img/run-trace-timeline.png)
+*Per-run execution timeline showing every step, its status, duration, and retry count*
+
+![Prompt Versions](docs/static/img/prompts.png)
+*Versioned prompt registry — track which prompt was active for every LLM call*
+
+![Metrics](docs/static/img/metrics.png)
+*14-day charts for runs, latency, cost, tokens, quality score, and success rate*
+
+---
+
 ## Installation
 
 ```bash
