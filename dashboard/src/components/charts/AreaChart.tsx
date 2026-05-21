@@ -1,7 +1,7 @@
 "use client";
 import {
   ResponsiveContainer, AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip
+  XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
 } from "recharts";
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
   valueLabel?: string;
   formatValue?: (v: number) => string;
   height?: number;
+  threshold?: number;
 }
 
 export default function SimpleAreaChart({
@@ -18,6 +19,7 @@ export default function SimpleAreaChart({
   valueLabel = "Value",
   formatValue = (v) => String(v),
   height = 200,
+  threshold,
 }: Props) {
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -48,6 +50,20 @@ export default function SimpleAreaChart({
           dot={false}
           activeDot={{ r: 4, fill: color }}
         />
+        {threshold != null && (
+          <ReferenceLine
+            y={threshold}
+            stroke="#ef4444"
+            strokeDasharray="5 3"
+            strokeWidth={1.5}
+            label={{
+              value: `Budget ${formatValue(threshold)}`,
+              fill: "#ef4444",
+              fontSize: 10,
+              position: "insideTopRight",
+            }}
+          />
+        )}
       </AreaChart>
     </ResponsiveContainer>
   );

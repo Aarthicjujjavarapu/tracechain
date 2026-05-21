@@ -1,9 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Card from "@/components/ui/Card";
 import SimpleAreaChart from "@/components/charts/AreaChart";
 import HBarChart from "@/components/charts/HBarChart";
+import BudgetAlert from "@/components/ui/BudgetAlert";
 import { api } from "@/lib/api";
+import { useBudget } from "@/lib/useBudget";
 
 type PT       = { date: string; value: number };
 type LabelVal = { label: string; value: number };
@@ -23,6 +25,19 @@ export default function MetricsPage() {
   const [failures,   setFailures]  = useState<LabelVal[]>([]);
   const [latencyWf,  setLatencyWf] = useState<LabelVal[]>([]);
   const [loading,    setLoading]   = useState(true);
+
+  const { perRun, perDay, savePerRun, savePerDay } = useBudget();
+  const [perDayInput, setPerDayInput] = useState("");
+  const [perRunInput, setPerRunInput] = useState("");
+
+  // Sync inputs when budget values load from localStorage
+  useEffect(() => { if (perDay != null) setPerDayInput(String(perDay)); }, [perDay]);
+  useEffect(() => { if (perRun != null) setPerRunInput(String(perRun)); }, [perRun]);
+
+  const exceededDays = useMemo(
+    () => perDay != null ? costTs.filter((d) => d.value > perDay) : [],
+    [costTs, perDay],
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -55,10 +70,22 @@ export default function MetricsPage() {
 
   const empty = (data: unknown[]) => !loading && data.length === 0;
 
+  function commitPerDay() {
+    const v = parseFloat(perDayInput);
+    savePerDay(isFinite(v) && v > 0 ? v : null);
+    if (!isFinite(v) || v <= 0) setPerDayInput("");
+  }
+
+  function commitPerRun() {
+    const v = parseFloat(perRunInput);
+    savePerRun(isFinite(v) && v > 0 ? v : null);
+    if (!isFinite(v) || v <= 0) setPerRunInput("");
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-semibold text-white">Metrics</h1>
           <p className="text-sm text-slate-500 mt-1">
@@ -66,23 +93,60 @@ export default function MetricsPage() {
           </p>
         </div>
 
-        {/* Range picker */}
-        <div className="flex items-center gap-1 bg-[#13151f] border border-[#252b3b] rounded-lg p-1 shrink-0">
-          {PRESETS.map((p) => (
-            <button
-              key={p}
-              onClick={() => setDays(p)}
-              className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
-                days === p
-                  ? "bg-brand-500 text-white"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-              }`}
-            >
-              {p}d
-            </button>
-          ))}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Budget inputs */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 whitespace-nowrap">Daily budget $</span>
+            <input
+              type="number"
+              min="0"
+              step="0.0001"
+              value={perDayInput}
+              onChange={(e) => setPerDayInput(e.target.value)}
+              onBlur={commitPerDay}
+              onKeyDown={(e) => e.key === "Enter" && commitPerDay()}
+              placeholder="none"
+              className="w-24 bg-[#13151f] border border-[#252b3b] text-slate-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-500 placeholder:text-slate-700"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 whitespace-nowrap">Per-run budget $</span>
+            <input
+              type="number"
+              min="0"
+              step="0.0001"
+              value={perRunInput}
+              onChange={(e) => setPerRunInput(e.target.value)}
+              onBlur={commitPerRun}
+              onKeyDown={(e) => e.key === "Enter" && commitPerRun()}
+              placeholder="none"
+              className="w-24 bg-[#13151f] border border-[#252b3b] text-slate-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-500 placeholder:text-slate-700"
+            />
+          </div>
+
+          {/* Range picker */}
+          <div className="flex items-center gap-1 bg-[#13151f] border border-[#252b3b] rounded-lg p-1">
+            {PRESETS.map((p) => (
+              <button
+                key={p}
+                onClick={() => setDays(p)}
+                className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                  days === p
+                    ? "bg-brand-500 text-white"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                }`}
+              >
+                {p}d
+              </button>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* Budget alert */}
+      {perDay != null && (
+        <BudgetAlert exceededDays={exceededDays} threshold={perDay} />
+      )}
 
       {/* Row 1 — volume + latency */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -114,6 +178,7 @@ export default function MetricsPage() {
             <SimpleAreaChart
               data={costTs} color="#22c55e" valueLabel="$"
               formatValue={(v) => `$${v.toFixed(4)}`} height={180}
+              threshold={perDay ?? undefined}
             />
           )}
         </Card>

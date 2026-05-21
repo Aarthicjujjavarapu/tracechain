@@ -7,6 +7,7 @@ import Card from "@/components/ui/Card";
 import { api } from "@/lib/api";
 import type { WorkflowRun } from "@/types";
 import { formatDistanceToNow } from "date-fns";
+import { useBudget } from "@/lib/useBudget";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,16 @@ export default function RunsPage() {
 function RunsContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
+
+  const { perRun, savePerRun } = useBudget();
+  const [perRunInput, setPerRunInput] = useState("");
+  useEffect(() => { if (perRun != null) setPerRunInput(String(perRun)); }, [perRun]);
+
+  function commitPerRun() {
+    const v = parseFloat(perRunInput);
+    savePerRun(isFinite(v) && v > 0 ? v : null);
+    if (!isFinite(v) || v <= 0) setPerRunInput("");
+  }
 
   // ── filter state (initialised from URL) ────────────────────────────────────
   const [status,        setStatus]        = useState(searchParams.get("status")    ?? "");
@@ -193,9 +204,32 @@ function RunsContent() {
               <option value="true">Replays only</option>
             </select>
 
+            {/* Per-run cost budget */}
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs text-slate-500 whitespace-nowrap">Cost budget $</span>
+              <input
+                type="number"
+                min="0"
+                step="0.0001"
+                value={perRunInput}
+                onChange={(e) => setPerRunInput(e.target.value)}
+                onBlur={commitPerRun}
+                onKeyDown={(e) => e.key === "Enter" && commitPerRun()}
+                placeholder="none"
+                className="w-24 bg-[#0f1117] border border-[#252b3b] text-slate-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-500 placeholder:text-slate-700"
+              />
+              {perRun != null && (
+                <button
+                  onClick={() => { savePerRun(null); setPerRunInput(""); }}
+                  className="text-xs text-slate-600 hover:text-slate-400 transition-colors"
+                  title="Clear budget"
+                >✕</button>
+              )}
+            </div>
+
             {hasFilters && (
               <button onClick={clearAll}
-                className="text-xs text-slate-500 hover:text-red-400 transition-colors ml-auto">
+                className="text-xs text-slate-500 hover:text-red-400 transition-colors">
                 Clear all
               </button>
             )}
@@ -279,8 +313,23 @@ function RunsContent() {
                       <td className="px-5 py-3.5 text-slate-400 tabular-nums">
                         {run.duration_ms != null ? `${run.duration_ms.toLocaleString()}ms` : "—"}
                       </td>
-                      <td className="px-5 py-3.5 text-emerald-400 text-xs tabular-nums">
-                        {run.total_cost != null ? `$${run.total_cost.toFixed(5)}` : "—"}
+                      <td className="px-5 py-3.5 text-xs tabular-nums">
+                        {run.total_cost != null ? (
+                          <span className={`inline-flex items-center gap-1 ${
+                            perRun != null && run.total_cost > perRun
+                              ? "text-red-400 font-medium"
+                              : "text-emerald-400"
+                          }`}>
+                            ${run.total_cost.toFixed(5)}
+                            {perRun != null && run.total_cost > perRun && (
+                              <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 12 12">
+                                <path d="M6 1.5L1 10h10L6 1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+                                <line x1="6" y1="5" x2="6" y2="7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                <circle cx="6" cy="9" r="0.5" fill="currentColor"/>
+                              </svg>
+                            )}
+                          </span>
+                        ) : "—"}
                       </td>
                       <td className="px-5 py-3.5 text-slate-400 text-xs tabular-nums">
                         {run.total_tokens != null ? run.total_tokens.toLocaleString() : "—"}
