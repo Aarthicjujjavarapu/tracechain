@@ -58,6 +58,7 @@ const sidebars: SidebarsConfig = {
       type: "category",
       label: "Advanced",
       items: [
+        "advanced/opentelemetry",
         "advanced/custom-clients",
         "advanced/context-propagation",
         "advanced/prompt-versioning",

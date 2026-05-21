@@ -120,3 +120,19 @@ You will see your `rag_pipeline` run with:
 - [Full `@workflow` API →](../sdk/workflow)
 - [Full `@llm_step` API →](../sdk/llm-step)
 - [Replay a run →](../sdk/replay)
+
+## Runnable examples
+
+All examples work without an OpenAI API key — a built-in mock LLM generates realistic responses.
+
+| File | What it shows |
+|------|--------------|
+| `examples/01_rag_pipeline.py` | `@step`, `@llm_step`, `evaluate_run` |
+| `examples/02_support_agent.py` | Multi-step agent, retries, multiple runs |
+| `examples/03_streaming_llm.py` | `observe_llm()` with streaming TTFT + tool calling |
+| `examples/04_opentelemetry.py` | `configure_otel()` → Jaeger / console export |
+
+```bash
+pip install -e sdk/
+python examples/01_rag_pipeline.py
+```
