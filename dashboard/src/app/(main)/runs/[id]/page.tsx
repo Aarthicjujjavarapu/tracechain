@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Card from "@/components/ui/Card";
@@ -9,43 +10,54 @@ import TraceTimeline from "@/components/runs/TraceTimeline";
 import LLMCallCard from "@/components/runs/LLMCallCard";
 import ReplayHistory from "@/components/runs/ReplayHistory";
 import ComparePanel from "@/components/runs/ComparePanel";
+import DiagnosticsPanel from "@/components/diagnostics/DiagnosticsPanel";
 import { api } from "@/lib/api";
-import type { WorkflowRun, TraceStep, LLMCall, EvaluationResult, HumanFeedback } from "@/types";
+import type {
+  WorkflowRun, TraceStep, LLMCall, EvaluationResult,
+  HumanFeedback, RunGraph, RunDiagnostics,
+} from "@/types";
 import { format } from "date-fns";
 
-type Tab = "trace" | "llm" | "eval" | "io";
+// ReactFlow uses browser-only APIs — must be dynamically imported
+const AgentGraph = dynamic(() => import("@/components/graph/AgentGraph"), { ssr: false });
+
+type Tab = "graph" | "trace" | "diagnostics" | "llm" | "eval" | "io";
 
 export default function RunDetailPage() {
   const { id }  = useParams<{ id: string }>();
   const router  = useRouter();
 
-  const [run,      setRun]      = useState<WorkflowRun | null>(null);
-  const [steps,    setSteps]    = useState<TraceStep[]>([]);
-  const [llmCalls, setLlmCalls] = useState<LLMCall[]>([]);
-  const [evals,    setEvals]    = useState<EvaluationResult[]>([]);
-  const [feedback, setFeedback] = useState<HumanFeedback[]>([]);
-  const [loadErr,  setLoadErr]  = useState<string | null>(null);
+  const [run,         setRun]         = useState<WorkflowRun | null>(null);
+  const [steps,       setSteps]       = useState<TraceStep[]>([]);
+  const [llmCalls,    setLlmCalls]    = useState<LLMCall[]>([]);
+  const [evals,       setEvals]       = useState<EvaluationResult[]>([]);
+  const [feedback,    setFeedback]    = useState<HumanFeedback[]>([]);
+  const [graph,       setGraph]       = useState<RunGraph | null>(null);
+  const [diagnostics, setDiagnostics] = useState<RunDiagnostics | null>(null);
+  const [loadErr,     setLoadErr]     = useState<string | null>(null);
 
-  const [replays,     setReplays]     = useState<WorkflowRun[]>([]);
-  const [originalRun, setOriginalRun] = useState<WorkflowRun | null>(null);
-  const [originalEval,setOriginalEval]= useState<EvaluationResult | null>(null);
+  const [replays,      setReplays]      = useState<WorkflowRun[]>([]);
+  const [originalRun,  setOriginalRun]  = useState<WorkflowRun | null>(null);
+  const [originalEval, setOriginalEval] = useState<EvaluationResult | null>(null);
 
   const [rating,     setRating]     = useState(0);
   const [comment,    setComment]    = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [fbSuccess,  setFbSuccess]  = useState(false);
   const [replaying,  setReplaying]  = useState(false);
-  const [activeTab,  setActiveTab]  = useState<Tab>("trace");
+  const [activeTab,  setActiveTab]  = useState<Tab>("graph");
 
   useEffect(() => {
     if (!id) return;
     async function loadAll() {
-      const [r, s, l, e, f] = await Promise.allSettled([
+      const [r, s, l, e, f, g, d] = await Promise.allSettled([
         api.runs.get(id),
         api.runs.steps(id),
         api.runs.llmCalls(id),
         api.runs.evaluations(id),
         api.runs.feedback(id),
+        api.runs.graph(id),
+        api.runs.diagnostics(id),
       ]);
       if (r.status === "rejected") { setLoadErr(r.reason.message); return; }
       const loadedRun = r.value;
@@ -54,12 +66,12 @@ export default function RunDetailPage() {
       if (l.status === "fulfilled") setLlmCalls(l.value);
       if (e.status === "fulfilled") setEvals(e.value);
       if (f.status === "fulfilled") setFeedback(f.value);
+      if (g.status === "fulfilled") setGraph(g.value);
+      if (d.status === "fulfilled") setDiagnostics(d.value);
 
-      // Fetch replay list (shows on original runs; empty on replays)
       const replayData = await api.runs.replays(id).catch(() => null);
       if (replayData) setReplays(replayData.items);
 
-      // If this is a replay, load the original run + its eval for ComparePanel
       if (loadedRun.is_replay && loadedRun.original_run_id) {
         const [origR, origE] = await Promise.allSettled([
           api.runs.get(loadedRun.original_run_id),
@@ -112,11 +124,13 @@ export default function RunDetailPage() {
   const totalCost   = llmCalls.reduce((s, c) => s + (c.estimated_cost ?? 0), 0);
   const totalTokens = llmCalls.reduce((s, c) => s + (c.total_tokens  ?? 0), 0);
 
-  const TABS: { key: Tab; label: string }[] = [
-    { key: "trace", label: "Trace Timeline"          },
-    { key: "llm",   label: `LLM Calls (${llmCalls.length})` },
-    { key: "eval",  label: "Evaluation"              },
-    { key: "io",    label: "Input / Output"          },
+  const TABS: { key: Tab; label: string; badge?: string }[] = [
+    { key: "graph",       label: "Agent Graph"                                            },
+    { key: "trace",       label: "Trace Timeline"                                         },
+    { key: "diagnostics", label: "Diagnostics",  badge: diagnostics ? "NEW" : undefined   },
+    { key: "llm",         label: `LLM Calls (${llmCalls.length})`                         },
+    { key: "eval",        label: "Evaluation"                                             },
+    { key: "io",          label: "Input / Output"                                         },
   ];
 
   return (
@@ -166,8 +180,8 @@ export default function RunDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           ["Duration",     run.duration_ms != null ? `${run.duration_ms.toLocaleString()}ms` : "—"],
-          ["Total Cost",   totalCost   > 0 ? `$${totalCost.toFixed(5)}`      : "—"],
-          ["Total Tokens", totalTokens > 0 ? totalTokens.toLocaleString()    : "—"],
+          ["Total Cost",   totalCost   > 0 ? `$${totalCost.toFixed(5)}`   : "—"],
+          ["Total Tokens", totalTokens > 0 ? totalTokens.toLocaleString() : "—"],
           ["LLM Calls",    llmCalls.length.toString()],
         ].map(([label, value]) => (
           <Card key={label} padding="sm">
@@ -177,7 +191,7 @@ export default function RunDetailPage() {
         ))}
       </div>
 
-      {/* Compare panel — only for replay runs once original is loaded */}
+      {/* Compare panel */}
       {run.is_replay && originalRun && (
         <ComparePanel
           original={{ run: originalRun, eval: originalEval }}
@@ -185,7 +199,7 @@ export default function RunDetailPage() {
         />
       )}
 
-      {/* Replay history — only for original runs that have replays */}
+      {/* Replay history */}
       {!run.is_replay && replays.length > 0 && (
         <Card>
           <h2 className="text-sm font-medium text-slate-300 mb-4">Replay History</h2>
@@ -195,17 +209,50 @@ export default function RunDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-[#252b3b] overflow-x-auto">
-        {TABS.map(({ key, label }) => (
+        {TABS.map(({ key, label, badge }) => (
           <button key={key} onClick={() => setActiveTab(key)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+            className={`relative px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === key
                 ? "border-brand-500 text-brand-400"
                 : "border-transparent text-slate-500 hover:text-slate-300"
-            }`}>{label}</button>
+            }`}>
+            {label}
+            {badge && (
+              <span className="ml-1.5 text-[9px] text-brand-400 bg-brand-500/10 px-1 py-0.5 rounded border border-brand-500/20 font-bold align-middle">
+                {badge}
+              </span>
+            )}
+          </button>
         ))}
       </div>
 
       {/* Tab panels */}
+      {activeTab === "graph" && (
+        <Card padding="none" className="overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#252b3b] flex items-center justify-between">
+            <h2 className="text-sm font-medium text-slate-300">Agent Execution Graph</h2>
+            {graph && (
+              <span className="text-xs text-slate-600">
+                {graph.nodes.length} nodes · {graph.edges.length} edges
+              </span>
+            )}
+          </div>
+          {graph ? (
+            <AgentGraph nodes={graph.nodes as any} edges={graph.edges as any} />
+          ) : (
+            <div className="p-12 text-center">
+              <p className="text-slate-500 text-sm">
+                No graph data yet — spans are recorded via{" "}
+                <code className="text-slate-400">POST /v1/ingest/batch</code>
+              </p>
+              <p className="text-slate-600 text-xs mt-2">
+                Legacy runs show trace timeline in the Trace tab.
+              </p>
+            </div>
+          )}
+        </Card>
+      )}
+
       {activeTab === "trace" && (
         <Card>
           <h2 className="text-sm font-medium text-slate-300 mb-5">Execution Timeline</h2>
@@ -213,6 +260,19 @@ export default function RunDetailPage() {
             ? <p className="text-slate-500 text-sm">No steps recorded for this run.</p>
             : <TraceTimeline steps={steps} />}
         </Card>
+      )}
+
+      {activeTab === "diagnostics" && (
+        diagnostics
+          ? <DiagnosticsPanel diagnostics={diagnostics} />
+          : (
+            <Card>
+              <p className="text-slate-500 text-sm">
+                Diagnostics require spans ingested via the new{" "}
+                <code className="text-slate-400">POST /v1/ingest/batch</code> endpoint.
+              </p>
+            </Card>
+          )
       )}
 
       {activeTab === "llm" && (
@@ -272,7 +332,6 @@ export default function RunDetailPage() {
       {/* Feedback */}
       <Card>
         <h2 className="text-sm font-medium text-slate-300 mb-4">Human Feedback</h2>
-
         {feedback.length > 0 && (
           <div className="space-y-2 mb-5">
             {feedback.map((fb) => (
@@ -290,7 +349,6 @@ export default function RunDetailPage() {
             ))}
           </div>
         )}
-
         <div className="space-y-3 border-t border-[#252b3b] pt-4">
           <p className="text-xs text-slate-500">Rate this run</p>
           <div className="flex gap-1">

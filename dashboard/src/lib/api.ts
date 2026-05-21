@@ -1,6 +1,7 @@
 import type {
   WorkflowRun, TraceStep, LLMCall, PromptVersion,
   EvaluationResult, HumanFeedback, OverviewMetrics,
+  RunGraph, RunDiagnostics,
 } from "@/types";
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -45,6 +46,8 @@ export const api = {
     llmCalls:    (id: string) => req<LLMCall[]>(`/runs/${id}/llm-calls`),
     evaluations: (id: string) => req<EvaluationResult[]>(`/runs/${id}/evaluations`),
     feedback:    (id: string) => req<HumanFeedback[]>(`/runs/${id}/feedback`),
+    graph:       (id: string) => req<RunGraph>(`/v1/runs/${id}/graph`),
+    diagnostics: (id: string) => req<RunDiagnostics>(`/v1/runs/${id}/diagnostics`),
     submitFeedback: (id: string, body: { rating: number; comment?: string }) =>
       req<HumanFeedback>(`/runs/${id}/feedback`, { method: "POST", body: JSON.stringify(body) }),
   },
