@@ -30,6 +30,7 @@ from .replay import create_replay_metadata, trigger_replay
 from .tracing import get_run_id, get_step_id
 from .otel import configure_otel
 from .observe import observe_llm
+from .batch import batch_step, BatchResult
 
 __all__ = [
     "TraceChainConfig",
@@ -47,6 +48,8 @@ __all__ = [
     "get_step_id",
     "configure_otel",
     "observe_llm",
+    "batch_step",
+    "BatchResult",
 ]
 
 __version__ = "0.1.0"
