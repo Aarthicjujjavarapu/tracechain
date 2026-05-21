@@ -46,6 +46,9 @@ dev = [
     "opentelemetry-sdk>=1.20.0",
 ]
 
+[project.scripts]
+tracechain = "tracechain.cli:main"
+
 [project.urls]
 Homepage   = "https://github.com/Aarthicjujjavarapu/tracechain"
 Repository = "https://github.com/Aarthicjujjavarapu/tracechain"
