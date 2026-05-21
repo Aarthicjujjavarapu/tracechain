@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/Badge";
@@ -49,6 +49,14 @@ function SortTh({
 // ── main page ─────────────────────────────────────────────────────────────────
 
 export default function RunsPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-slate-600 text-sm">Loading…</div>}>
+      <RunsContent />
+    </Suspense>
+  );
+}
+
+function RunsContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
 
