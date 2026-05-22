@@ -24,3 +24,4 @@ export {
   type LlmObserver,
   type RecordOptions,
 } from "./observe.js";
+export { batchStep, BatchResult, type BatchStepOptions } from "./batch.js";
