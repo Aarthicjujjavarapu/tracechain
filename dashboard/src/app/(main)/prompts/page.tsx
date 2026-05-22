@@ -4,10 +4,94 @@ import Link from "next/link";
 import Card from "@/components/ui/Card";
 import PromptDiff from "@/components/prompts/PromptDiff";
 import { api } from "@/lib/api";
-import type { PromptVersion } from "@/types";
+import type { PromptVersion, PromptCompareOut } from "@/types";
 import { format } from "date-fns";
 
 type DiffState = { leftId: string; rightId: string };
+
+// ── Metrics comparison panel ──────────────────────────────────────────────────
+
+function WinBadge({ side, winner }: { side: "a" | "b"; winner: "a" | "b" | null }) {
+  if (winner !== side) return null;
+  return (
+    <span className="ml-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">
+      WIN
+    </span>
+  );
+}
+
+function MetricsCompare({ leftId, rightId, leftPv, rightPv }: {
+  leftId: string; rightId: string;
+  leftPv: PromptVersion; rightPv: PromptVersion;
+}) {
+  const [data, setData]   = useState<PromptCompareOut | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setData(null);
+    setLoading(true);
+    api.prompts.compare(leftId, rightId)
+      .then(setData)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [leftId, rightId]);
+
+  if (loading) return <p className="text-slate-500 text-xs py-2">Loading metrics…</p>;
+  if (!data)   return <p className="text-slate-600 text-xs py-2">Metrics unavailable</p>;
+
+  const { a, b, winner } = data;
+
+  const fmtMs   = (v: number | null) => v != null ? `${Math.round(v).toLocaleString()}ms` : "—";
+  const fmtCost = (v: number | null) => v != null ? `$${v.toFixed(5)}` : "—";
+  const fmtPct  = (v: number)        => `${(v * 100).toFixed(1)}%`;
+  const fmtQ    = (v: number | null) => v != null ? v.toFixed(3) : "—";
+
+  const rows: { label: string; aVal: string; bVal: string; win: "a" | "b" | null }[] = [
+    { label: "Usage Count",   aVal: a.usage_count.toLocaleString(), bVal: b.usage_count.toLocaleString(), win: null },
+    { label: "Success Rate",  aVal: fmtPct(a.success_rate),         bVal: fmtPct(b.success_rate),         win: winner.success_rate },
+    { label: "Avg Latency",   aVal: fmtMs(a.avg_latency_ms),        bVal: fmtMs(b.avg_latency_ms),        win: winner.latency },
+    { label: "Avg Cost/call", aVal: fmtCost(a.avg_cost),            bVal: fmtCost(b.avg_cost),            win: winner.cost },
+    { label: "Quality Score", aVal: fmtQ(a.avg_quality_score),      bVal: fmtQ(b.avg_quality_score),      win: winner.quality },
+  ];
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Performance Comparison</p>
+      <div className="rounded-lg border border-[#252b3b] overflow-hidden">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-[#252b3b] bg-[#0d0f1a]">
+              <th className="text-left px-4 py-2.5 text-slate-500 font-medium w-1/3">Metric</th>
+              <th className="text-left px-4 py-2.5 text-slate-400 font-medium w-1/3">
+                <span className="font-mono bg-[#252b3b] px-1.5 py-0.5 rounded text-slate-300">{leftPv.version}</span>
+                <span className="text-slate-600 ml-1.5">A</span>
+              </th>
+              <th className="text-left px-4 py-2.5 text-slate-400 font-medium w-1/3">
+                <span className="font-mono bg-[#252b3b] px-1.5 py-0.5 rounded text-slate-300">{rightPv.version}</span>
+                <span className="text-slate-600 ml-1.5">B</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ label, aVal, bVal, win }) => (
+              <tr key={label} className="border-b border-[#1e2235] last:border-0 hover:bg-white/[0.015]">
+                <td className="px-4 py-2.5 text-slate-500">{label}</td>
+                <td className={`px-4 py-2.5 font-mono ${win === "a" ? "text-emerald-400 font-semibold" : "text-slate-300"}`}>
+                  {aVal}
+                  <WinBadge side="a" winner={win} />
+                </td>
+                <td className={`px-4 py-2.5 font-mono ${win === "b" ? "text-emerald-400 font-semibold" : "text-slate-300"}`}>
+                  {bVal}
+                  <WinBadge side="b" winner={win} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
 export default function PromptsPage() {
   const [prompts, setPrompts] = useState<PromptVersion[]>([]);
@@ -181,13 +265,13 @@ export default function PromptsPage() {
                 </tbody>
               </table>
 
-              {/* Inline diff panel */}
+              {/* Inline diff + metrics panel */}
               {diff && leftPv && rightPv && (
-                <div className="border-t border-[#252b3b] px-5 py-5 space-y-4">
+                <div className="border-t border-[#252b3b] px-5 py-5 space-y-5">
                   {/* Version selectors */}
                   <div className="flex items-center gap-4 flex-wrap">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">From</span>
+                      <span className="text-xs text-slate-500">A</span>
                       <select
                         value={diff.leftId}
                         onChange={(e) => setDiffs((prev) => ({ ...prev, [name]: { ...prev[name], leftId: e.target.value } }))}
@@ -198,9 +282,9 @@ export default function PromptsPage() {
                         ))}
                       </select>
                     </div>
-                    <span className="text-slate-600 text-xs">→</span>
+                    <span className="text-slate-600 text-xs">vs</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">To</span>
+                      <span className="text-xs text-slate-500">B</span>
                       <select
                         value={diff.rightId}
                         onChange={(e) => setDiffs((prev) => ({ ...prev, [name]: { ...prev[name], rightId: e.target.value } }))}
@@ -213,8 +297,19 @@ export default function PromptsPage() {
                     </div>
                   </div>
 
-                  {/* Diff renderer */}
-                  <PromptDiff left={leftPv} right={rightPv} />
+                  {/* Metrics comparison */}
+                  <MetricsCompare
+                    leftId={diff.leftId}
+                    rightId={diff.rightId}
+                    leftPv={leftPv}
+                    rightPv={rightPv}
+                  />
+
+                  {/* Text diff */}
+                  <div>
+                    <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Prompt Diff</p>
+                    <PromptDiff left={leftPv} right={rightPv} />
+                  </div>
                 </div>
               )}
             </Card>

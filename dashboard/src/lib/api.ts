@@ -1,5 +1,5 @@
 import type {
-  WorkflowRun, TraceStep, LLMCall, PromptVersion,
+  WorkflowRun, TraceStep, LLMCall, PromptVersion, PromptMetrics, PromptCompareOut,
   EvaluationResult, HumanFeedback, OverviewMetrics,
   RunGraph, RunDiagnostics,
   FailureClassification, Incident, WorkflowHealth,
@@ -76,11 +76,8 @@ export const api = {
   prompts: {
     list:    ()           => req<PromptVersion[]>("/prompts"),
     get:     (id: string) => req<PromptVersion>(`/prompts/${id}`),
-    metrics: (id: string) => req<{
-      prompt_id: string; prompt_name: string; version: string;
-      usage_count: number; avg_latency_ms: number | null;
-      avg_cost: number | null; success_rate: number; avg_quality_score: number | null;
-    }>(`/prompts/${id}/metrics`),
+    metrics: (id: string) => req<PromptMetrics>(`/prompts/${id}/metrics`),
+    compare: (a: string, b: string) => req<PromptCompareOut>(`/prompts/compare?a=${a}&b=${b}`),
     create: (body: { prompt_name: string; version: string; prompt_text: string; is_active?: boolean }) =>
       req<PromptVersion>("/prompts", { method: "POST", body: JSON.stringify(body) }),
   },

@@ -216,6 +216,19 @@ class PromptMetrics(BaseModel):
     avg_quality_score: Optional[float]
 
 
+class CompareWinner(BaseModel):
+    latency:      Optional[str] = None   # "a" | "b" | None
+    cost:         Optional[str] = None
+    success_rate: Optional[str] = None
+    quality:      Optional[str] = None
+
+
+class PromptCompareOut(BaseModel):
+    a:      PromptMetrics
+    b:      PromptMetrics
+    winner: CompareWinner
+
+
 # ─── EvaluationResult ─────────────────────────────────────────────────────────
 
 class EvalCreate(BaseModel):

@@ -106,6 +106,30 @@ export interface PromptVersion {
   created_at: string;
 }
 
+export interface PromptMetrics {
+  prompt_id: string;
+  prompt_name: string;
+  version: string;
+  usage_count: number;
+  avg_latency_ms: number | null;
+  avg_cost: number | null;
+  success_rate: number;
+  avg_quality_score: number | null;
+}
+
+export interface PromptCompareWinner {
+  latency:      "a" | "b" | null;
+  cost:         "a" | "b" | null;
+  success_rate: "a" | "b" | null;
+  quality:      "a" | "b" | null;
+}
+
+export interface PromptCompareOut {
+  a:      PromptMetrics;
+  b:      PromptMetrics;
+  winner: PromptCompareWinner;
+}
+
 export interface EvaluationResult {
   id: string;
   run_id: string;
