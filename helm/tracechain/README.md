@@ -3,7 +3,15 @@
 Deploys the TraceChain LLM observability platform on Kubernetes:
 backend (FastAPI) + dashboard (Next.js), optional ingress, and optional HPA.
 
-## Quick start (SQLite, no ingress)
+## Install from the Helm repository
+
+```bash
+helm repo add tracechain https://aarthicjujjavarapu.github.io/tracechain
+helm repo update
+helm install tracechain tracechain/tracechain
+```
+
+## Quick start (SQLite, no ingress — from source)
 
 ```bash
 helm install tracechain ./helm/tracechain

@@ -54,3 +54,50 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
+
+  publish-helm:
+    name: Helm chart
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to push to gh-pages
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so gh-pages branch can be updated
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "3.14.0"
+
+      - name: Package chart
+        run: helm package helm/tracechain --destination .chart-pkg
+
+      - name: Checkout gh-pages branch
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages || true
+
+      - name: Update Helm repo index and push
+        run: |
+          # Work in a temp dir that merges new package with existing index
+          mkdir -p /tmp/helm-repo
+          cp .chart-pkg/*.tgz /tmp/helm-repo/
+
+          # Fetch existing index.yaml from gh-pages if it exists
+          git show origin/gh-pages:index.yaml > /tmp/helm-repo/index.yaml 2>/dev/null || true
+
+          # Rebuild index, merging with existing entries
+          REPO_URL="https://aarthicjujjavarapu.github.io/tracechain"
+          helm repo index /tmp/helm-repo --url "$REPO_URL" --merge /tmp/helm-repo/index.yaml 2>/dev/null || \
+            helm repo index /tmp/helm-repo --url "$REPO_URL"
+
+          # Push to gh-pages
+          git checkout --orphan gh-pages-helm 2>/dev/null || git checkout gh-pages
+          git checkout origin/gh-pages -- . 2>/dev/null || true
+          cp /tmp/helm-repo/index.yaml ./index.yaml
+          cp /tmp/helm-repo/*.tgz ./
+          git add index.yaml *.tgz
+          git commit -m "helm: publish chart $(helm show chart helm/tracechain | grep '^version:' | awk '{print $2}')" || true
+          git push origin HEAD:gh-pages --force

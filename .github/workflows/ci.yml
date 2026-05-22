@@ -129,10 +129,32 @@ jobs:
         run: ruff check app/
         working-directory: backend
 
+  # ── Helm lint ─────────────────────────────────────────────────────────────
+  helm-lint:
+    name: Helm / Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "3.14.0"
+
+      - name: Lint chart (default values)
+        run: helm lint helm/tracechain
+
+      - name: Lint chart (prod values)
+        run: helm lint helm/tracechain -f helm/tracechain/values.prod.yaml
+
+      - name: Template render smoke-test
+        run: helm template tracechain helm/tracechain > /dev/null
+
   # ── All-green gate (required status check) ────────────────────────────────
   ci:
     name: CI
-    needs: [sdk-tests, sdk-js-tests, dashboard-typecheck, backend-lint, backend-tests]
+    needs: [sdk-tests, sdk-js-tests, dashboard-typecheck, backend-lint, backend-tests, helm-lint]
     runs-on: ubuntu-latest
     if: always()
     steps:
