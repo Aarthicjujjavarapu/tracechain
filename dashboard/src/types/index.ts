@@ -318,3 +318,36 @@ export interface WebhookDelivery {
   attempted_at:   string;
   error_message:  string | null;
 }
+
+// ── Cost Budgets ──────────────────────────────────────────────────────────────
+
+export type BudgetPeriod = "daily" | "monthly" | "total";
+export type BudgetStatusKind = "ok" | "warning" | "critical" | "exceeded";
+
+export interface CostBudget {
+  id:            string;
+  name:          string;
+  workflow_name: string | null;
+  budget_usd:    number;
+  period:        BudgetPeriod;
+  warning_pct:   number;
+  enabled:       boolean;
+  created_at:    string;
+}
+
+export interface BudgetStatusOut extends CostBudget {
+  spent:                 number;
+  remaining:             number;
+  pct_used:              number;
+  status:                BudgetStatusKind;
+  projected_monthly_usd: number | null;
+  window_start:          string | null;
+}
+
+export interface SpendSummary {
+  today_usd:       number;
+  month_usd:       number;
+  all_time_usd:    number;
+  run_count_today: number;
+  run_count_month: number;
+}

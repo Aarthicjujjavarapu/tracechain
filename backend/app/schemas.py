@@ -467,3 +467,52 @@ class WebhookDeliveryOut(BaseModel):
     error_message:  Optional[str]
 
     model_config = {"from_attributes": True}
+
+
+# ─── Cost Budgets ─────────────────────────────────────────────────────────────
+
+class BudgetCreate(BaseModel):
+    name:          str
+    workflow_name: Optional[str]  = None
+    budget_usd:    float
+    period:        str            = "monthly"   # daily | monthly | total
+    warning_pct:   float          = 0.75
+    enabled:       bool           = True
+
+
+class BudgetUpdate(BaseModel):
+    name:        Optional[str]   = None
+    budget_usd:  Optional[float] = None
+    period:      Optional[str]   = None
+    warning_pct: Optional[float] = None
+    enabled:     Optional[bool]  = None
+
+
+class BudgetOut(BaseModel):
+    id:            str
+    name:          str
+    workflow_name: Optional[str]
+    budget_usd:    float
+    period:        str
+    warning_pct:   float
+    enabled:       bool
+    created_at:    datetime
+
+    model_config = {"from_attributes": True}
+
+
+class BudgetStatusOut(BudgetOut):
+    spent:                 float
+    remaining:             float
+    pct_used:              float
+    status:                str            # ok | warning | critical | exceeded
+    projected_monthly_usd: Optional[float]
+    window_start:          Optional[str]
+
+
+class SpendSummary(BaseModel):
+    today_usd:       float
+    month_usd:       float
+    all_time_usd:    float
+    run_count_today: int
+    run_count_month: int

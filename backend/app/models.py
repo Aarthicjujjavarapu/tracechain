@@ -334,3 +334,18 @@ class WebhookDelivery(Base):
     error_message  = Column(Text,        nullable=True)
 
     destination = relationship("WebhookDestination", back_populates="deliveries")
+
+
+# ─── Cost Budgets ─────────────────────────────────────────────────────────────
+
+class CostBudget(Base):
+    __tablename__ = "cost_budgets"
+
+    id            = Column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    name          = Column(String(255), nullable=False, unique=True)
+    workflow_name = Column(String(255), nullable=True, index=True)   # None = all workflows
+    budget_usd    = Column(Float,       nullable=False)
+    period        = Column(String(16),  nullable=False, default="monthly")  # daily|monthly|total
+    warning_pct   = Column(Float,       nullable=False, default=0.75)       # warn at this fraction
+    enabled       = Column(Boolean,     nullable=False, default=True)
+    created_at    = Column(DateTime(timezone=True), nullable=False, default=_now)

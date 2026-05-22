@@ -10,6 +10,7 @@ const NAV = [
   { href: "/runs",      label: "Runs",         icon: IconRuns      },
   { href: "/incidents", label: "Incidents",    icon: IconIncidents },
   { href: "/alerts",    label: "Alerts",       icon: IconAlerts    },
+  { href: "/budgets",   label: "Budgets",      icon: IconBudgets   },
   { href: "/prompts",   label: "Prompts",      icon: IconPrompts   },
   { href: "/metrics",   label: "Metrics",      icon: IconMetrics   },
   { href: "/examples",  label: "Examples",     icon: IconExamples  },
@@ -130,6 +131,15 @@ function IconAlerts({ active }: { active: boolean }) {
       <path d="M8 1v1M3.5 3.5l.7.7M12.5 3.5l-.7.7M2 9h1M13 9h1M4 13h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
       <path d="M5 9a3 3 0 1 1 6 0v2H5V9Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
       <path d="M6.5 13a1.5 1.5 0 0 0 3 0" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function IconBudgets({ active }: { active: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={active ? "text-brand-400" : "text-slate-500"}>
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.4"/>
+      <path d="M8 4v1.5M8 10.5V12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <path d="M6 6.5c0-.83.67-1.5 2-1.5s2 .67 2 1.5c0 1-1 1.5-2 1.5s-2 .5-2 1.5c0 .83.67 1.5 2 1.5s2-.67 2-1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }

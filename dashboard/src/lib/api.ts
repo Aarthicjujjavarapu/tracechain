@@ -5,6 +5,7 @@ import type {
   FailureClassification, Incident, WorkflowHealth,
   AlertRule, AlertFiring, AlertSummary,
   WebhookDestination, WebhookDelivery,
+  CostBudget, BudgetStatusOut, SpendSummary,
 } from "@/types";
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -139,6 +140,18 @@ export const api = {
     firings: (activeOnly = false, limit = 50) =>
       req<AlertFiring[]>(`/alerts/firings?active_only=${activeOnly}&limit=${limit}`),
     summary: () => req<AlertSummary>("/alerts/summary"),
+  },
+
+  // ── budgets ───────────────────────────────────────────────────────────────
+  budgets: {
+    summary: () => req<SpendSummary>("/budgets/spend-summary"),
+    list:    () => req<BudgetStatusOut[]>("/budgets"),
+    get:     (id: string) => req<BudgetStatusOut>(`/budgets/${id}`),
+    create:  (body: { name: string; workflow_name?: string | null; budget_usd: number; period?: string; warning_pct?: number; enabled?: boolean }) =>
+      req<CostBudget>("/budgets", { method: "POST", body: JSON.stringify(body) }),
+    update:  (id: string, body: Partial<{ name: string; budget_usd: number; period: string; warning_pct: number; enabled: boolean }>) =>
+      req<CostBudget>(`/budgets/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    delete:  (id: string) => req<void>(`/budgets/${id}`, { method: "DELETE" }),
   },
 
   // ── webhooks ──────────────────────────────────────────────────────────────
