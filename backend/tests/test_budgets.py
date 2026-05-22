@@ -180,3 +180,31 @@ def test_spend_summary_with_runs(client):
     assert r["all_time_usd"] == pytest.approx(0.35, abs=1e-4)
     assert r["today_usd"] == pytest.approx(0.35, abs=1e-4)
     assert r["run_count_today"] == 2
+
+
+# ── Input validation ──────────────────────────────────────────────────────────
+
+def test_create_budget_zero_amount_rejected(client):
+    r = client.post("/budgets", json={"name": "bad", "budget_usd": 0.0})
+    assert r.status_code == 422
+
+
+def test_create_budget_negative_amount_rejected(client):
+    r = client.post("/budgets", json={"name": "bad", "budget_usd": -5.0})
+    assert r.status_code == 422
+
+
+def test_create_budget_invalid_period_rejected(client):
+    r = client.post("/budgets", json={"name": "bad", "budget_usd": 1.0, "period": "weekly"})
+    assert r.status_code == 422
+
+
+def test_create_budget_warning_pct_out_of_range_rejected(client):
+    r = client.post("/budgets", json={"name": "bad", "budget_usd": 1.0, "warning_pct": 1.5})
+    assert r.status_code == 422
+
+
+def test_update_budget_zero_amount_rejected(client):
+    b = _make_budget(client)
+    r = client.patch(f"/budgets/{b['id']}", json={"budget_usd": 0.0})
+    assert r.status_code == 422

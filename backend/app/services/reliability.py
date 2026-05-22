@@ -21,9 +21,7 @@ def compute_reliability(db: Session, run: WorkflowRun) -> tuple[int, list[str]]:
     score   = 100
     reasons: list[str] = []
 
-    steps = run.steps     or []
-    calls = run.llm_calls or []
-    evals = run.evaluations or []
+    steps = run.steps or []
 
     # ── Run-level failure ──────────────────────────────────────────────────────
     if run.status == RunStatus.failed:

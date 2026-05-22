@@ -193,3 +193,27 @@ def test_firing_schema_fields(client):
     if firings:
         for field in ["id", "rule_id", "metric_value", "fired_at", "resolved_at", "is_active"]:
             assert field in firings[0]
+
+
+# ── Input validation ──────────────────────────────────────────────────────────
+
+def test_create_rule_invalid_metric_rejected(client):
+    r = client.post("/alerts/rules", json={
+        "name": "bad", "metric": "not_a_metric", "operator": "lt", "threshold": 0.5,
+    })
+    assert r.status_code == 422
+
+
+def test_create_rule_invalid_operator_rejected(client):
+    r = client.post("/alerts/rules", json={
+        "name": "bad", "metric": "success_rate", "operator": "==", "threshold": 0.5,
+    })
+    assert r.status_code == 422
+
+
+def test_create_rule_zero_window_minutes_rejected(client):
+    r = client.post("/alerts/rules", json={
+        "name": "bad", "metric": "success_rate", "operator": "lt",
+        "threshold": 0.5, "window_minutes": 0,
+    })
+    assert r.status_code == 422

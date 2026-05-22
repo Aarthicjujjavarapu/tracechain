@@ -1,6 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field
 from .models import RunStatus, StepType, LLMStatus
 
@@ -379,10 +379,10 @@ class WorkflowHealth(BaseModel):
 
 class AlertRuleCreate(BaseModel):
     name:           str
-    metric:         str   # success_rate | avg_latency_ms | avg_cost | open_incidents | reliability_score
-    operator:       str   # lt | lte | gt | gte
+    metric:         Literal["success_rate", "avg_latency_ms", "avg_cost", "open_incidents", "reliability_score"]
+    operator:       Literal["lt", "lte", "gt", "gte"]
     threshold:      float
-    window_minutes: int = 60
+    window_minutes: int = Field(default=60, ge=1)
     severity:       str = "MEDIUM"
     workflow_name:  Optional[str] = None
     enabled:        bool = True
@@ -474,15 +474,15 @@ class WebhookDeliveryOut(BaseModel):
 class BudgetCreate(BaseModel):
     name:          str
     workflow_name: Optional[str]  = None
-    budget_usd:    float
-    period:        str            = "monthly"   # daily | monthly | total
-    warning_pct:   float          = 0.75
+    budget_usd:    float          = Field(gt=0)
+    period:        Literal["daily", "monthly", "total"] = "monthly"
+    warning_pct:   float          = Field(default=0.75, gt=0, lt=1)
     enabled:       bool           = True
 
 
 class BudgetUpdate(BaseModel):
     name:        Optional[str]   = None
-    budget_usd:  Optional[float] = None
+    budget_usd:  Optional[float] = Field(default=None, gt=0)
     period:      Optional[str]   = None
     warning_pct: Optional[float] = None
     enabled:     Optional[bool]  = None

@@ -261,7 +261,7 @@ export default function BudgetsPage() {
         {err && <p className="text-red-400 text-xs mb-3">{err}</p>}
         <button
           onClick={handleCreate}
-          disabled={saving || !form.name || !form.budget_usd}
+          disabled={saving || !form.name || !form.budget_usd || !form.warning_pct}
           className="px-4 py-2 bg-brand-500 hover:bg-brand-600 disabled:opacity-40 text-white text-sm rounded-lg font-medium transition-colors"
         >
           {saving ? "Creating…" : "Create Budget"}

@@ -85,6 +85,21 @@ def _get_incident(client, inc_id: str) -> dict:
     raise KeyError(inc_id)
 
 
+def test_acknowledge_resolved_incident_returns_409(client):
+    """Acknowledging an already-resolved incident must return 409, not silently succeed."""
+    run_id = _create_run(client)
+    client.post(f"/runs/{run_id}/fail", json={"error_message": "rate limit 429"})
+
+    incidents = client.get("/incidents").json()["items"]
+    if not incidents:
+        pytest.skip("no incidents created")
+
+    inc_id = incidents[0]["id"]
+    client.patch(f"/incidents/{inc_id}", json={"status": "RESOLVED"})
+    r = client.patch(f"/incidents/{inc_id}", json={"status": "ACKNOWLEDGED"})
+    assert r.status_code == 409
+
+
 def test_acknowledged_incident_reopens_on_new_occurrence(client):
     """When a new failure of the same category arrives, an ACKNOWLEDGED incident
     must flip back to OPEN rather than staying silently acknowledged."""

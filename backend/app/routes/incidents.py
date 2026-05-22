@@ -27,10 +27,14 @@ def list_incidents(
 def update_incident(incident_id: str, data: IncidentUpdate, db: Session = Depends(get_db)):
     if data.status == "ACKNOWLEDGED":
         inc = acknowledge_incident(db, incident_id)
+        if not inc:
+            raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found")
+        if inc.status == "RESOLVED":
+            raise HTTPException(status_code=409, detail="Cannot acknowledge a resolved incident")
     elif data.status == "RESOLVED":
         inc = resolve_incident(db, incident_id)
+        if not inc:
+            raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found")
     else:
         raise HTTPException(status_code=422, detail="status must be ACKNOWLEDGED or RESOLVED")
-    if not inc:
-        raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found")
     return IncidentOut.model_validate(inc)
