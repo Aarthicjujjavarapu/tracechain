@@ -31,6 +31,8 @@ from .tracing import get_run_id, get_step_id
 from .otel import configure_otel
 from .observe import observe_llm
 from .batch import batch_step, BatchResult
+from .tools import observe_tool
+from .retrieval import observe_retrieval
 
 __all__ = [
     "TraceChainConfig",
@@ -50,6 +52,8 @@ __all__ = [
     "observe_llm",
     "batch_step",
     "BatchResult",
+    "observe_tool",
+    "observe_retrieval",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
