@@ -362,3 +362,14 @@ class IncidentSummary(BaseModel):
     acknowledged: int
     resolved: int
     total: int
+
+
+class WorkflowHealth(BaseModel):
+    workflow_name:        str
+    run_count:            int
+    avg_reliability_score: Optional[float]
+    success_rate:         float
+    open_incidents:       int
+    top_failure_category: Optional[str]
+    trend:                str   # "improving" | "degrading" | "stable" | "insufficient_data"
+    trend_delta:          Optional[float]

@@ -4,8 +4,9 @@ import StatCard from "@/components/ui/StatCard";
 import Card from "@/components/ui/Card";
 import SimpleAreaChart from "@/components/charts/AreaChart";
 import HBarChart from "@/components/charts/HBarChart";
+import WorkflowHealthCard from "@/components/workflows/WorkflowHealthCard";
 import { api } from "@/lib/api";
-import type { OverviewMetrics } from "@/types";
+import type { OverviewMetrics, WorkflowHealth } from "@/types";
 
 const DEMO: OverviewMetrics = {
   total_runs: 60, success_rate: 0.85, avg_latency_ms: 1240,
@@ -28,12 +29,13 @@ const DEMO_FAIL    = [
 ];
 
 export default function DashboardPage() {
-  const [metrics,  setMetrics]  = useState<OverviewMetrics>(DEMO);
-  const [runsTs,   setRunsTs]   = useState(DEMO_RUNS);
-  const [latency,  setLatency]  = useState(DEMO_LATENCY);
-  const [cost,     setCost]     = useState(DEMO_COST);
-  const [failures, setFailures] = useState(DEMO_FAIL);
-  const [loaded,   setLoaded]   = useState(false);
+  const [metrics,   setMetrics]   = useState<OverviewMetrics>(DEMO);
+  const [runsTs,    setRunsTs]    = useState(DEMO_RUNS);
+  const [latency,   setLatency]   = useState(DEMO_LATENCY);
+  const [cost,      setCost]      = useState(DEMO_COST);
+  const [failures,  setFailures]  = useState(DEMO_FAIL);
+  const [workflows, setWorkflows] = useState<WorkflowHealth[]>([]);
+  const [loaded,    setLoaded]    = useState(false);
 
   useEffect(() => {
     Promise.allSettled([
@@ -42,7 +44,8 @@ export default function DashboardPage() {
       api.metrics.timeseries.latency(14),
       api.metrics.timeseries.cost(14),
       api.metrics.failures(),
-    ]).then(([ov, runs, lat, cost_, fail]) => {
+      api.metrics.workflows(30),
+    ]).then(([ov, runs, lat, cost_, fail, wfs]) => {
       if (ov.status   === "fulfilled") setMetrics(ov.value);
       if (runs.status === "fulfilled") setRunsTs(
         runs.value.map((d) => ({ date: d.date.slice(5), value: d.value }))
@@ -56,6 +59,7 @@ export default function DashboardPage() {
       if (fail.status === "fulfilled") setFailures(
         fail.value.slice(0, 6).map((r) => ({ label: r.step_name, value: r.failure_count }))
       );
+      if (wfs.status === "fulfilled") setWorkflows(wfs.value);
       setLoaded(true);
     });
   }, []);
@@ -120,6 +124,21 @@ export default function DashboardPage() {
           height={failures.length * 44 + 20}
         />
       </Card>
+
+      {/* Workflow Health Matrix */}
+      {workflows.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-medium text-slate-300">Workflow Health — last 30 days</h2>
+            <span className="text-xs text-slate-600">{workflows.length} workflow{workflows.length !== 1 ? "s" : ""}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {workflows.map((wf) => (
+              <WorkflowHealthCard key={wf.workflow_name} wf={wf} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..schemas import (
     OverviewMetrics, LatencyPoint, CostPoint, FailurePoint, TimeSeriesPoint,
-    ClassificationBreakdownPoint, IncidentSummary,
+    ClassificationBreakdownPoint, IncidentSummary, WorkflowHealth,
 )
 from ..services import metrics as metrics_svc
 
@@ -88,3 +88,11 @@ def classification_breakdown(
 @router.get("/incidents/summary", response_model=IncidentSummary)
 def incident_summary(db: Session = Depends(get_db)):
     return metrics_svc.get_incident_summary(db)
+
+
+@router.get("/workflows", response_model=list[WorkflowHealth])
+def workflow_health(
+    days: int = Query(30, ge=1, le=90),
+    db: Session = Depends(get_db),
+):
+    return metrics_svc.get_workflow_health(db, days)

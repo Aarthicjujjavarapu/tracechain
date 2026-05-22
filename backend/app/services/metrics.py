@@ -3,12 +3,13 @@ from collections import defaultdict
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
+from collections import defaultdict as _defaultdict
 from sqlalchemy import desc
 from ..models import WorkflowRun, TraceStep, LLMCall, EvaluationResult, FailureClassification, Incident, IncidentStatus, RunStatus
 from ..schemas import (
     OverviewMetrics, LatencyPoint, CostPoint,
     FailurePoint, TimeSeriesPoint,
-    ClassificationBreakdownPoint, IncidentSummary,
+    ClassificationBreakdownPoint, IncidentSummary, WorkflowHealth,
 )
 
 
@@ -339,6 +340,117 @@ def get_classification_breakdown(
         )
         for r in rows
     ]
+
+
+def get_workflow_health(db: Session, days: int = 30) -> list[WorkflowHealth]:
+    """
+    Per-workflow health summary: reliability score, success rate, open incidents,
+    top failure category, and a 7-day trend direction.
+    """
+    now       = datetime.now(timezone.utc)
+    cutoff    = now - timedelta(days=days)
+    cutoff_7  = now - timedelta(days=7)
+    cutoff_14 = now - timedelta(days=14)
+
+    # ── 1. All runs in the window ─────────────────────────────────────────────
+    run_rows = (
+        db.query(
+            WorkflowRun.workflow_name,
+            WorkflowRun.status,
+            WorkflowRun.reliability_score,
+            WorkflowRun.started_at,
+        )
+        .filter(WorkflowRun.started_at >= cutoff)
+        .all()
+    )
+
+    by_wf: dict[str, dict] = {}
+    for row in run_rows:
+        wf = row.workflow_name
+        if wf not in by_wf:
+            by_wf[wf] = {
+                "run_count": 0, "success_count": 0,
+                "scores": [], "recent_scores": [], "prior_scores": [],
+            }
+        d = by_wf[wf]
+        d["run_count"] += 1
+        if row.status == RunStatus.success:
+            d["success_count"] += 1
+        if row.reliability_score is not None:
+            d["scores"].append(row.reliability_score)
+            # Normalise to UTC-aware for comparison (SQLite returns naive datetimes)
+            ts = row.started_at
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            if ts >= cutoff_7:
+                d["recent_scores"].append(row.reliability_score)
+            elif ts >= cutoff_14:
+                d["prior_scores"].append(row.reliability_score)
+
+    # ── 2. Open incidents per workflow ────────────────────────────────────────
+    inc_rows = (
+        db.query(Incident.workflow_name, func.count(Incident.id).label("cnt"))
+        .filter(
+            Incident.status == IncidentStatus.OPEN.value,
+            Incident.workflow_name.isnot(None),
+        )
+        .group_by(Incident.workflow_name)
+        .all()
+    )
+    open_incidents: dict[str, int] = {r.workflow_name: r.cnt for r in inc_rows}
+
+    # ── 3. Top failure category per workflow (last 14 days) ───────────────────
+    cls_rows = (
+        db.query(
+            WorkflowRun.workflow_name,
+            FailureClassification.category,
+            func.count(FailureClassification.id).label("cnt"),
+        )
+        .join(FailureClassification, FailureClassification.run_id == WorkflowRun.id)
+        .filter(WorkflowRun.started_at >= cutoff_14)
+        .group_by(WorkflowRun.workflow_name, FailureClassification.category)
+        .order_by(desc("cnt"))
+        .all()
+    )
+    top_category: dict[str, str] = {}
+    for row in cls_rows:
+        if row.workflow_name not in top_category:
+            top_category[row.workflow_name] = row.category
+
+    # ── 4. Assemble results ───────────────────────────────────────────────────
+    results: list[WorkflowHealth] = []
+    for wf, d in sorted(by_wf.items()):
+        scores        = d["scores"]
+        recent_scores = d["recent_scores"]
+        prior_scores  = d["prior_scores"]
+
+        avg_rel = round(sum(scores) / len(scores), 1) if scores else None
+        sr      = round(d["success_count"] / d["run_count"], 4) if d["run_count"] else 0.0
+
+        # Trend
+        if recent_scores and prior_scores:
+            recent_avg = sum(recent_scores) / len(recent_scores)
+            prior_avg  = sum(prior_scores)  / len(prior_scores)
+            delta = round(recent_avg - prior_avg, 1)
+            trend = "improving" if delta > 5 else ("degrading" if delta < -5 else "stable")
+        else:
+            delta = None
+            trend = "insufficient_data"
+
+        results.append(WorkflowHealth(
+            workflow_name=wf,
+            run_count=d["run_count"],
+            avg_reliability_score=avg_rel,
+            success_rate=sr,
+            open_incidents=open_incidents.get(wf, 0),
+            top_failure_category=top_category.get(wf),
+            trend=trend,
+            trend_delta=delta,
+        ))
+
+    # Sort: most runs first, then by name
+    results.sort(key=lambda w: (-w.run_count, w.workflow_name))
+    return results
 
 
 def get_incident_summary(db: Session) -> IncidentSummary:

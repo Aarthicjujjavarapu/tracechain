@@ -135,6 +135,17 @@ export interface OverviewMetrics {
   failure_count: number;
 }
 
+export interface WorkflowHealth {
+  workflow_name:         string;
+  run_count:             number;
+  avg_reliability_score: number | null;
+  success_rate:          number;
+  open_incidents:        number;
+  top_failure_category:  string | null;
+  trend:                 "improving" | "degrading" | "stable" | "insufficient_data";
+  trend_delta:           number | null;
+}
+
 // ── Agent graph ───────────────────────────────────────────────────────────────
 
 export type NodeStatus = "running" | "ok" | "error" | "retrying";

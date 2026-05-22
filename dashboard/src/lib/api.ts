@@ -2,7 +2,7 @@ import type {
   WorkflowRun, TraceStep, LLMCall, PromptVersion,
   EvaluationResult, HumanFeedback, OverviewMetrics,
   RunGraph, RunDiagnostics,
-  FailureClassification, Incident,
+  FailureClassification, Incident, WorkflowHealth,
 } from "@/types";
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -118,5 +118,7 @@ export const api = {
 
     incidentSummary: () =>
       req<{ open: number; acknowledged: number; resolved: number; total: number }>("/metrics/incidents/summary"),
+
+    workflows: (days = 30) => req<WorkflowHealth[]>(`/metrics/workflows?days=${days}`),
   },
 } as const;
