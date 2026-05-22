@@ -373,3 +373,57 @@ class WorkflowHealth(BaseModel):
     top_failure_category: Optional[str]
     trend:                str   # "improving" | "degrading" | "stable" | "insufficient_data"
     trend_delta:          Optional[float]
+
+
+# ─── Alert Rules ──────────────────────────────────────────────────────────────
+
+class AlertRuleCreate(BaseModel):
+    name:           str
+    metric:         str   # success_rate | avg_latency_ms | avg_cost | open_incidents | reliability_score
+    operator:       str   # lt | lte | gt | gte
+    threshold:      float
+    window_minutes: int = 60
+    severity:       str = "MEDIUM"
+    workflow_name:  Optional[str] = None
+    enabled:        bool = True
+
+
+class AlertRuleUpdate(BaseModel):
+    name:           Optional[str]   = None
+    threshold:      Optional[float] = None
+    window_minutes: Optional[int]   = None
+    severity:       Optional[str]   = None
+    enabled:        Optional[bool]  = None
+    workflow_name:  Optional[str]   = None
+
+
+class AlertRuleOut(BaseModel):
+    id:             str
+    name:           str
+    metric:         str
+    operator:       str
+    threshold:      float
+    window_minutes: int
+    severity:       str
+    workflow_name:  Optional[str]
+    enabled:        bool
+    created_at:     datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AlertFiringOut(BaseModel):
+    id:           str
+    rule_id:      str
+    metric_value: float
+    fired_at:     datetime
+    resolved_at:  Optional[datetime]
+    is_active:    bool
+
+    model_config = {"from_attributes": True}
+
+
+class AlertSummary(BaseModel):
+    total_rules:   int
+    enabled_rules: int
+    firing_now:    int

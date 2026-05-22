@@ -1,5 +1,4 @@
 // TypeScript types — mirrors Pydantic backend schemas
-// Fully populated in Step 7
 
 export type RunStatus = "pending" | "running" | "success" | "failed";
 export type StepType = "step" | "llm_step";
@@ -263,4 +262,37 @@ export interface RunDiagnostics {
   latency:       LatencyReport;
   tokens:        TokenReport;
   context_window:{ warning_count: number; critical_count: number; warnings: ContextWarning[] };
+}
+
+// ── Alert Rules ───────────────────────────────────────────────────────────────
+
+export type AlertMetric   = "success_rate" | "avg_latency_ms" | "avg_cost" | "open_incidents" | "reliability_score";
+export type AlertOperator = "lt" | "lte" | "gt" | "gte";
+
+export interface AlertRule {
+  id:             string;
+  name:           string;
+  metric:         AlertMetric;
+  operator:       AlertOperator;
+  threshold:      number;
+  window_minutes: number;
+  severity:       FailureSeverity;
+  workflow_name:  string | null;
+  enabled:        boolean;
+  created_at:     string;
+}
+
+export interface AlertFiring {
+  id:           string;
+  rule_id:      string;
+  metric_value: number;
+  fired_at:     string;
+  resolved_at:  string | null;
+  is_active:    boolean;
+}
+
+export interface AlertSummary {
+  total_rules:   number;
+  enabled_rules: number;
+  firing_now:    number;
 }

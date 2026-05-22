@@ -115,6 +115,12 @@ def _post_run_analysis(db: Session, run: WorkflowRun) -> None:
             if fresh_run:
                 group_incident(db, fresh_run, classifications)
 
+        with db.begin_nested():
+            from .alerts import evaluate_alert_rules
+            fresh_run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
+            wf_name = fresh_run.workflow_name if fresh_run else None
+            evaluate_alert_rules(db, wf_name)
+
         db.commit()
     except Exception:
         logger.exception("post-run analysis failed for run %s", run.id)

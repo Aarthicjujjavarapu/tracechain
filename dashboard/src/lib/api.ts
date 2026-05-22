@@ -3,6 +3,7 @@ import type {
   EvaluationResult, HumanFeedback, OverviewMetrics,
   RunGraph, RunDiagnostics,
   FailureClassification, Incident, WorkflowHealth,
+  AlertRule, AlertFiring, AlertSummary,
 } from "@/types";
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -120,5 +121,22 @@ export const api = {
       req<{ open: number; acknowledged: number; resolved: number; total: number }>("/metrics/incidents/summary"),
 
     workflows: (days = 30) => req<WorkflowHealth[]>(`/metrics/workflows?days=${days}`),
+  },
+
+  // ── alerts ────────────────────────────────────────────────────────────────
+  alerts: {
+    rules: {
+      list:   ()                     => req<AlertRule[]>("/alerts/rules"),
+      get:    (id: string)           => req<AlertRule>(`/alerts/rules/${id}`),
+      create: (body: Pick<AlertRule, "name" | "metric" | "operator" | "threshold" | "window_minutes" | "severity" | "workflow_name" | "enabled">) =>
+        req<AlertRule>("/alerts/rules", { method: "POST", body: JSON.stringify(body) }),
+      update: (id: string, body: Partial<Pick<AlertRule, "name" | "threshold" | "window_minutes" | "severity" | "enabled" | "workflow_name">>) =>
+        req<AlertRule>(`/alerts/rules/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+      delete: (id: string) =>
+        req<void>(`/alerts/rules/${id}`, { method: "DELETE" }),
+    },
+    firings: (activeOnly = false, limit = 50) =>
+      req<AlertFiring[]>(`/alerts/firings?active_only=${activeOnly}&limit=${limit}`),
+    summary: () => req<AlertSummary>("/alerts/summary"),
   },
 } as const;

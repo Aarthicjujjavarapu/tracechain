@@ -7,6 +7,7 @@ import HBarChart from "@/components/charts/HBarChart";
 import WorkflowHealthCard from "@/components/workflows/WorkflowHealthCard";
 import { api } from "@/lib/api";
 import type { OverviewMetrics, WorkflowHealth } from "@/types";
+import Link from "next/link";
 
 const DEMO: OverviewMetrics = {
   total_runs: 60, success_rate: 0.85, avg_latency_ms: 1240,
@@ -34,8 +35,9 @@ export default function DashboardPage() {
   const [latency,   setLatency]   = useState(DEMO_LATENCY);
   const [cost,      setCost]      = useState(DEMO_COST);
   const [failures,  setFailures]  = useState(DEMO_FAIL);
-  const [workflows, setWorkflows] = useState<WorkflowHealth[]>([]);
-  const [loaded,    setLoaded]    = useState(false);
+  const [workflows,   setWorkflows]   = useState<WorkflowHealth[]>([]);
+  const [firingCount, setFiringCount] = useState(0);
+  const [loaded,      setLoaded]      = useState(false);
 
   useEffect(() => {
     Promise.allSettled([
@@ -45,7 +47,8 @@ export default function DashboardPage() {
       api.metrics.timeseries.cost(14),
       api.metrics.failures(),
       api.metrics.workflows(30),
-    ]).then(([ov, runs, lat, cost_, fail, wfs]) => {
+      api.alerts.summary(),
+    ]).then(([ov, runs, lat, cost_, fail, wfs, alertSum]) => {
       if (ov.status   === "fulfilled") setMetrics(ov.value);
       if (runs.status === "fulfilled") setRunsTs(
         runs.value.map((d) => ({ date: d.date.slice(5), value: d.value }))
@@ -59,7 +62,8 @@ export default function DashboardPage() {
       if (fail.status === "fulfilled") setFailures(
         fail.value.slice(0, 6).map((r) => ({ label: r.step_name, value: r.failure_count }))
       );
-      if (wfs.status === "fulfilled") setWorkflows(wfs.value);
+      if (wfs.status      === "fulfilled") setWorkflows(wfs.value);
+      if (alertSum.status === "fulfilled") setFiringCount(alertSum.value.firing_now);
       setLoaded(true);
     });
   }, []);
@@ -84,6 +88,17 @@ export default function DashboardPage() {
           <span className="text-xs text-slate-600 animate-pulse">loading live data…</span>
         )}
       </div>
+
+      {/* Firing alerts banner */}
+      {firingCount > 0 && (
+        <Link href="/alerts" className="flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/25 rounded-xl hover:bg-red-500/15 transition-colors">
+          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+          <p className="text-red-300 text-sm font-medium flex-1">
+            {firingCount} alert rule{firingCount !== 1 ? "s" : ""} firing now
+          </p>
+          <span className="text-red-500 text-xs">View alerts →</span>
+        </Link>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">

@@ -69,6 +69,21 @@ class IncidentStatus(str, enum.Enum):
     RESOLVED     = "RESOLVED"
 
 
+class AlertMetric(str, enum.Enum):
+    success_rate      = "success_rate"
+    avg_latency_ms    = "avg_latency_ms"
+    avg_cost          = "avg_cost"
+    open_incidents    = "open_incidents"
+    reliability_score = "reliability_score"
+
+
+class AlertOperator(str, enum.Enum):
+    lt  = "lt"
+    lte = "lte"
+    gt  = "gt"
+    gte = "gte"
+
+
 # ─── Models ───────────────────────────────────────────────────────────────────
 
 class WorkflowRun(Base):
@@ -257,3 +272,35 @@ class Incident(Base):
     created_at         = Column(DateTime(timezone=True), nullable=False, default=_now)
 
     runs = relationship("WorkflowRun", secondary=incident_runs, backref="incidents")
+
+
+# ─── Alert Rules ──────────────────────────────────────────────────────────────
+
+class AlertRule(Base):
+    __tablename__ = "alert_rules"
+
+    id             = Column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    name           = Column(String(255), nullable=False)
+    metric         = Column(String(32),  nullable=False)   # AlertMetric value
+    operator       = Column(String(8),   nullable=False)   # AlertOperator value
+    threshold      = Column(Float,       nullable=False)
+    window_minutes = Column(Integer,     nullable=False, default=60)
+    severity       = Column(String(16),  nullable=False, default=FailureSeverity.MEDIUM.value)
+    workflow_name  = Column(String(255), nullable=True, index=True)
+    enabled        = Column(Boolean,     nullable=False, default=True)
+    created_at     = Column(DateTime(timezone=True), nullable=False, default=_now)
+
+    firings = relationship("AlertFiring", back_populates="rule", cascade="all, delete-orphan")
+
+
+class AlertFiring(Base):
+    __tablename__ = "alert_firings"
+
+    id           = Column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    rule_id      = Column(UUID(as_uuid=False), ForeignKey("alert_rules.id", ondelete="CASCADE"), nullable=False, index=True)
+    metric_value = Column(Float,  nullable=False)
+    fired_at     = Column(DateTime(timezone=True), nullable=False, default=_now)
+    resolved_at  = Column(DateTime(timezone=True), nullable=True)
+    is_active    = Column(Boolean, nullable=False, default=True)
+
+    rule = relationship("AlertRule", back_populates="firings")
