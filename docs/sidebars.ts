@@ -29,6 +29,7 @@ const sidebars: SidebarsConfig = {
         "sdk/evaluations",
         "sdk/replay",
         "sdk/tracing",
+        "sdk/batch-step",
       ],
     },
     {
