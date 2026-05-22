@@ -115,13 +115,24 @@ def _post_run_analysis(db: Session, run: WorkflowRun) -> None:
             if fresh_run:
                 group_incident(db, fresh_run, classifications)
 
+        new_firings:      list = []
+        resolved_firings: list = []
         with db.begin_nested():
             from .alerts import evaluate_alert_rules
             fresh_run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
             wf_name = fresh_run.workflow_name if fresh_run else None
-            evaluate_alert_rules(db, wf_name)
+            new_firings, resolved_firings = evaluate_alert_rules(db, wf_name)
 
         db.commit()
+
+        # Deliver webhooks after the commit so firings are visible in DB
+        if new_firings or resolved_firings:
+            try:
+                from .webhooks import deliver_alert_events
+                deliver_alert_events(db, new_firings, resolved_firings)
+            except Exception:
+                logger.exception("webhook delivery failed for run %s", run.id)
+
     except Exception:
         logger.exception("post-run analysis failed for run %s", run.id)
         try:

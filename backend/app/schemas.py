@@ -427,3 +427,43 @@ class AlertSummary(BaseModel):
     total_rules:   int
     enabled_rules: int
     firing_now:    int
+
+
+# ─── Webhooks ─────────────────────────────────────────────────────────────────
+
+class WebhookCreate(BaseModel):
+    name:    str
+    url:     str
+    secret:  Optional[str] = None
+    enabled: bool = True
+
+
+class WebhookUpdate(BaseModel):
+    name:    Optional[str]  = None
+    url:     Optional[str]  = None
+    secret:  Optional[str]  = None
+    enabled: Optional[bool] = None
+
+
+class WebhookOut(BaseModel):
+    id:         str
+    name:       str
+    url:        str
+    secret:     Optional[str]
+    enabled:    bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class WebhookDeliveryOut(BaseModel):
+    id:             str
+    destination_id: str
+    event_type:     str
+    payload:        dict
+    status_code:    Optional[int]
+    success:        bool
+    attempted_at:   datetime
+    error_message:  Optional[str]
+
+    model_config = {"from_attributes": True}

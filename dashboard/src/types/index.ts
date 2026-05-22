@@ -296,3 +296,25 @@ export interface AlertSummary {
   enabled_rules: number;
   firing_now:    number;
 }
+
+// ── Webhooks ──────────────────────────────────────────────────────────────────
+
+export interface WebhookDestination {
+  id:         string;
+  name:       string;
+  url:        string;
+  secret:     string | null;
+  enabled:    boolean;
+  created_at: string;
+}
+
+export interface WebhookDelivery {
+  id:             string;
+  destination_id: string;
+  event_type:     string;
+  payload:        Record<string, unknown>;
+  status_code:    number | null;
+  success:        boolean;
+  attempted_at:   string;
+  error_message:  string | null;
+}

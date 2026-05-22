@@ -4,6 +4,7 @@ import type {
   RunGraph, RunDiagnostics,
   FailureClassification, Incident, WorkflowHealth,
   AlertRule, AlertFiring, AlertSummary,
+  WebhookDestination, WebhookDelivery,
 } from "@/types";
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -138,5 +139,17 @@ export const api = {
     firings: (activeOnly = false, limit = 50) =>
       req<AlertFiring[]>(`/alerts/firings?active_only=${activeOnly}&limit=${limit}`),
     summary: () => req<AlertSummary>("/alerts/summary"),
+  },
+
+  // ── webhooks ──────────────────────────────────────────────────────────────
+  webhooks: {
+    list:   ()                                                              => req<WebhookDestination[]>("/webhooks"),
+    get:    (id: string)                                                    => req<WebhookDestination>(`/webhooks/${id}`),
+    create: (body: { name: string; url: string; secret?: string })         => req<WebhookDestination>("/webhooks", { method: "POST", body: JSON.stringify(body) }),
+    update: (id: string, body: Partial<{ name: string; url: string; secret: string; enabled: boolean }>) =>
+      req<WebhookDestination>(`/webhooks/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    delete: (id: string)                                                    => req<void>(`/webhooks/${id}`, { method: "DELETE" }),
+    deliveries: (limit = 50, failed = false) =>
+      req<WebhookDelivery[]>(`/webhooks/deliveries/recent?limit=${limit}&failed=${failed}`),
   },
 } as const;

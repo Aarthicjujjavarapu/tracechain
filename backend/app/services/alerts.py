@@ -97,9 +97,18 @@ def _compute_metric(db: Session, rule: AlertRule, now: datetime) -> float | None
     return None
 
 
-def evaluate_alert_rules(db: Session, workflow_name: str | None = None) -> None:
-    """Evaluate all enabled rules (optionally scoped to a workflow) and update firings."""
+def evaluate_alert_rules(
+    db: Session,
+    workflow_name: str | None = None,
+) -> tuple[list[AlertFiring], list[AlertFiring]]:
+    """Evaluate all enabled rules and update firings.
+
+    Returns (new_firings, resolved_firings) so callers can trigger webhooks
+    after committing.
+    """
     now = datetime.now(timezone.utc)
+    new_firings:      list[AlertFiring] = []
+    resolved_firings: list[AlertFiring] = []
 
     q = db.query(AlertRule).filter(AlertRule.enabled == True)  # noqa: E712
     if workflow_name:
@@ -126,12 +135,16 @@ def evaluate_alert_rules(db: Session, workflow_name: str | None = None) -> None:
             )
 
             if condition_met and not active_firing:
-                db.add(AlertFiring(rule_id=rule.id, metric_value=value, fired_at=now))
+                firing = AlertFiring(rule_id=rule.id, metric_value=value, fired_at=now)
+                db.add(firing)
+                new_firings.append(firing)
             elif not condition_met and active_firing:
                 active_firing.resolved_at = now
                 active_firing.is_active   = False
+                resolved_firings.append(active_firing)
 
         except Exception:
             logger.exception("alert rule %s (%s) evaluation failed", rule.id, rule.name)
 
     db.flush()
+    return new_firings, resolved_firings

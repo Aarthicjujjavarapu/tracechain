@@ -304,3 +304,33 @@ class AlertFiring(Base):
     is_active    = Column(Boolean, nullable=False, default=True)
 
     rule = relationship("AlertRule", back_populates="firings")
+
+
+# ─── Webhook Destinations ─────────────────────────────────────────────────────
+
+class WebhookDestination(Base):
+    __tablename__ = "webhook_destinations"
+
+    id         = Column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    name       = Column(String(255), nullable=False)
+    url        = Column(Text,        nullable=False)
+    secret     = Column(String(255), nullable=True)   # HMAC signing key, optional
+    enabled    = Column(Boolean,     nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=_now)
+
+    deliveries = relationship("WebhookDelivery", back_populates="destination", cascade="all, delete-orphan")
+
+
+class WebhookDelivery(Base):
+    __tablename__ = "webhook_deliveries"
+
+    id             = Column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    destination_id = Column(UUID(as_uuid=False), ForeignKey("webhook_destinations.id", ondelete="CASCADE"), nullable=False, index=True)
+    event_type     = Column(String(64),  nullable=False)    # "alert.fired" | "alert.resolved"
+    payload        = Column(JSONB,       nullable=False, default=dict)
+    status_code    = Column(Integer,     nullable=True)     # None if connection failed
+    success        = Column(Boolean,     nullable=False, default=False)
+    attempted_at   = Column(DateTime(timezone=True), nullable=False, default=_now)
+    error_message  = Column(Text,        nullable=True)
+
+    destination = relationship("WebhookDestination", back_populates="deliveries")
