@@ -1,0 +1,36 @@
+TraceChain {{ .Chart.AppVersion }} has been deployed!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{{- if .Values.ingress.enabled }}
+
+  Dashboard : https://{{ .Values.ingress.dashboardHost }}
+  Backend   : https://{{ .Values.ingress.backendHost }}
+  Health    : https://{{ .Values.ingress.backendHost }}/health
+
+{{- else }}
+
+Access the dashboard locally with port-forward:
+
+  kubectl port-forward svc/{{ include "tracechain.fullname" . }}-dashboard 3000:{{ .Values.dashboard.service.port }}
+  open http://localhost:3000
+
+Access the backend API:
+
+  kubectl port-forward svc/{{ include "tracechain.fullname" . }}-backend 8000:{{ .Values.backend.service.port }}
+  curl http://localhost:8000/health
+
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Configuration:
+  Database  : {{ .Values.database.type }}
+  Backend   : {{ .Values.backend.replicaCount }} replica(s)
+  Dashboard : {{ .Values.dashboard.replicaCount }} replica(s)
+  HPA       : {{ if .Values.backend.autoscaling.enabled }}enabled ({{ .Values.backend.autoscaling.minReplicas }}–{{ .Values.backend.autoscaling.maxReplicas }}){{ else }}disabled{{ end }}
+
+Point your SDK at the backend:
+  export TRACECHAIN_API_URL={{ if .Values.ingress.enabled }}https://{{ .Values.ingress.backendHost }}{{ else }}http://localhost:8000{{ end }}
+
+Docs: https://aarthicjujjavarapu.github.io/tracechain/docs/getting-started/quickstart

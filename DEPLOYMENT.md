@@ -1,12 +1,51 @@
 # TraceChain — Deployment Guide
 
-Three production-ready deployment targets are covered below. Choose one:
+Four production-ready deployment targets are covered below. Choose one:
 
 | Option | Best for | Cost |
 |---|---|---|
+| **Kubernetes / Helm** | Production, autoscaling, GitOps | Cluster cost |
 | **Railway** | Quickest end-to-end cloud deploy | ~$5–10/mo (hobby) |
 | **Render** | Free tier, PostgreSQL add-on | Free (limited) or $7/mo |
 | **Docker Compose (VPS)** | Full control on DigitalOcean / Hetzner | ~$6/mo |
+
+---
+
+## Option K — Kubernetes with Helm
+
+The `helm/tracechain` chart deploys the backend + dashboard with configurable
+persistence, ingress, and horizontal pod autoscaling.
+
+### Prerequisites
+
+- Kubernetes cluster (EKS, GKE, AKS, k3s, …)
+- Helm 3+
+- NGINX Ingress Controller (if `ingress.enabled: true`)
+- cert-manager (if TLS is required)
+
+### Quick install (SQLite, no ingress)
+
+```bash
+helm install tracechain ./helm/tracechain
+
+kubectl port-forward svc/tracechain-dashboard 3000:3000
+# open http://localhost:3000
+```
+
+### Production install (PostgreSQL + ingress + HPA)
+
+```bash
+helm upgrade --install tracechain ./helm/tracechain \
+  -f helm/tracechain/values.prod.yaml \
+  --set database.external.url="postgresql://user:pass@host:5432/tracechain" \
+  --set ingress.dashboardHost=tracechain.example.com \
+  --set ingress.backendHost=api.tracechain.example.com \
+  --set secrets.openaiApiKey="$OPENAI_API_KEY"
+```
+
+See [`helm/tracechain/README.md`](helm/tracechain/README.md) for the full values reference.
+
+---
 
 The Next.js dashboard can be deployed separately on **Vercel** (free) regardless of which backend option you choose.
 

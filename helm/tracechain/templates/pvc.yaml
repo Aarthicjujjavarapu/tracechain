@@ -1,0 +1,17 @@
+{{- if and (eq .Values.database.type "sqlite") .Values.database.sqlite.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "tracechain.fullname" . }}-data
+  labels:
+    {{- include "tracechain.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.database.sqlite.persistence.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.database.sqlite.persistence.size | quote }}
+  {{- if .Values.database.sqlite.persistence.storageClass }}
+  storageClassName: {{ .Values.database.sqlite.persistence.storageClass | quote }}
+  {{- end }}
+{{- end }}
