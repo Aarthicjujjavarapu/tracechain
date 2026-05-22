@@ -32,10 +32,6 @@ def failures(days: int = Query(30, ge=1, le=90), db: Session = Depends(get_db)):
     return metrics_svc.get_failures(db, days)
 
 
-@router.get("/prompts", response_model=list[LatencyPoint])
-def prompts_metrics(db: Session = Depends(get_db)):
-    return metrics_svc.get_latency(db)  # per-workflow breakdown, sufficient for v1
-
 
 @router.get("/timeseries/success-rate", response_model=list[TimeSeriesPoint])
 def success_rate_timeseries(days: int = Query(14, ge=1, le=90), db: Session = Depends(get_db)):

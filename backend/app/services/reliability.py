@@ -45,48 +45,6 @@ def compute_reliability(db: Session, run: WorkflowRun) -> tuple[int, list[str]]:
         score -= penalty
         reasons.append(f"High retry count ({total_retries} total retries across {len(retried)} step(s))")
 
-    # ── Latency ────────────────────────────────────────────────────────────────
-    if run.duration_ms:
-        if run.duration_ms > 60_000:
-            score -= 15
-            reasons.append(f"Severe latency spike ({run.duration_ms / 1000:.1f}s)")
-        elif run.duration_ms > 30_000:
-            score -= 10
-            reasons.append(f"High latency ({run.duration_ms / 1000:.1f}s)")
-        elif run.duration_ms > 10_000:
-            score -= 5
-            reasons.append(f"Elevated latency ({run.duration_ms / 1000:.1f}s)")
-
-    # ── Cost ───────────────────────────────────────────────────────────────────
-    if run.total_cost:
-        if run.total_cost > 1.0:
-            score -= 10
-            reasons.append(f"Cost spike (${run.total_cost:.4f} per run)")
-        elif run.total_cost > 0.25:
-            score -= 5
-            reasons.append(f"Elevated cost (${run.total_cost:.4f} per run)")
-
-    # ── Evaluation scores ──────────────────────────────────────────────────────
-    for ev in evals:
-        if ev.hallucination_risk is not None:
-            if ev.hallucination_risk > 0.9:
-                score -= 20
-                reasons.append(f"Critical hallucination risk ({ev.hallucination_risk:.0%})")
-            elif ev.hallucination_risk > 0.7:
-                score -= 10
-                reasons.append(f"High hallucination risk ({ev.hallucination_risk:.0%})")
-            elif ev.hallucination_risk > 0.5:
-                score -= 5
-                reasons.append(f"Elevated hallucination risk ({ev.hallucination_risk:.0%})")
-
-        if ev.relevance_score is not None:
-            if ev.relevance_score < 0.2:
-                score -= 10
-                reasons.append(f"Very low retrieval relevance ({ev.relevance_score:.0%})")
-            elif ev.relevance_score < 0.4:
-                score -= 5
-                reasons.append(f"Low retrieval relevance ({ev.relevance_score:.0%})")
-
     # ── Failure classifications ────────────────────────────────────────────────
     classifications: list[FailureClassification] = run.classifications or []
     for fc in classifications:

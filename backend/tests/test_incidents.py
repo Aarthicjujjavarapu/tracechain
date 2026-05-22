@@ -74,6 +74,48 @@ def test_invalid_incident_status_returns_422(client):
     assert r.status_code == 422
 
 
+# ── Incident reopen after acknowledgement ────────────────────────────────────
+
+def _get_incident(client, inc_id: str) -> dict:
+    """Fetch a single incident via the list endpoint."""
+    items = client.get("/incidents").json()["items"]
+    for i in items:
+        if i["id"] == inc_id:
+            return i
+    raise KeyError(inc_id)
+
+
+def test_acknowledged_incident_reopens_on_new_occurrence(client):
+    """When a new failure of the same category arrives, an ACKNOWLEDGED incident
+    must flip back to OPEN rather than staying silently acknowledged."""
+    wf = "reopen_wf"
+
+    # First failure → incident created (OPEN)
+    run1 = _create_run(client, wf)
+    client.post(f"/runs/{run1}/fail", json={"error_message": "Read timeout after 30s"})
+
+    incidents = client.get("/incidents?status=OPEN").json()["items"]
+    wf_incidents = [i for i in incidents if i.get("workflow_name") == wf]
+    if not wf_incidents:
+        pytest.skip("no incident created on first failure")
+    inc_id = wf_incidents[0]["id"]
+
+    # Operator acknowledges
+    client.patch(f"/incidents/{inc_id}", json={"status": "ACKNOWLEDGED"})
+    assert _get_incident(client, inc_id)["status"] == "ACKNOWLEDGED"
+
+    # Second failure of the same type in the same workflow
+    run2 = _create_run(client, wf)
+    client.post(f"/runs/{run2}/fail", json={"error_message": "Read timeout after 30s"})
+
+    # Incident must be OPEN again
+    updated = _get_incident(client, inc_id)
+    assert updated["status"] == "OPEN", (
+        f"Expected OPEN after recurrence, got {updated['status']}"
+    )
+    assert updated["occurrence_count"] >= 2
+
+
 # ── Classification endpoint ───────────────────────────────────────────────────
 
 def test_get_classifications_empty(client):

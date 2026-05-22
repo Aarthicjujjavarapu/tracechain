@@ -78,46 +78,46 @@ def test_retry_penalty():
     assert any("retry" in r.lower() for r in reasons)
 
 
-# ── Latency ───────────────────────────────────────────────────────────────────
+# ── No direct-signal double-penalty ───────────────────────────────────────────
+# Latency, cost, hallucination, and relevance are captured by classifications.
+# Without a matching classification the raw signal alone must NOT reduce the score.
 
-def test_latency_medium_penalty():
-    run = _run(duration_ms=15_000)
-    score, reasons = compute_reliability(None, run)
-    assert score <= 95
-    assert any("latency" in r.lower() for r in reasons)
-
-
-def test_latency_critical_penalty():
-    run = _run(duration_ms=70_000)
-    score, reasons = compute_reliability(None, run)
-    assert score <= 85
-    assert any("latency" in r.lower() for r in reasons)
+def test_latency_alone_no_penalty():
+    """High duration_ms without a classification must not subtract points."""
+    run = _run(duration_ms=90_000)
+    score, _ = compute_reliability(None, run)
+    assert score == 100
 
 
-# ── Cost ──────────────────────────────────────────────────────────────────────
-
-def test_cost_spike_penalty():
-    run = _run(total_cost=1.50)
-    score, reasons = compute_reliability(None, run)
-    assert score <= 90
-    assert any("cost" in r.lower() for r in reasons)
+def test_cost_alone_no_penalty():
+    run = _run(total_cost=5.0)
+    score, _ = compute_reliability(None, run)
+    assert score == 100
 
 
-# ── Evaluations ───────────────────────────────────────────────────────────────
-
-def test_hallucination_penalty():
-    ev  = _eval(hallucination_risk=0.85)
+def test_hallucination_alone_no_penalty():
+    ev  = _eval(hallucination_risk=0.99)
     run = _run(evaluations=[ev])
-    score, reasons = compute_reliability(None, run)
-    assert score <= 90
-    assert any("hallucination" in r.lower() for r in reasons)
+    score, _ = compute_reliability(None, run)
+    assert score == 100
 
 
-def test_low_relevance_penalty():
-    ev  = _eval(relevance_score=0.15)
+def test_low_relevance_alone_no_penalty():
+    ev  = _eval(relevance_score=0.01)
     run = _run(evaluations=[ev])
-    score, reasons = compute_reliability(None, run)
-    assert score <= 90
+    score, _ = compute_reliability(None, run)
+    assert score == 100
+
+
+def test_no_double_penalty_hallucination_with_classification():
+    """A hallucination signal covered by a CRITICAL classification should only
+    subtract the classification penalty (15 pts), not 15 + 20."""
+    cls = _cls("CRITICAL")
+    cls.category = "HALLUCINATION_RISK"
+    ev  = _eval(hallucination_risk=0.99)
+    run = _run(evaluations=[ev], classifications=[cls])
+    score, _ = compute_reliability(None, run)
+    assert score == 85  # 100 - 15 (CRITICAL), not 100 - 15 - 20
 
 
 # ── Severity penalties ────────────────────────────────────────────────────────

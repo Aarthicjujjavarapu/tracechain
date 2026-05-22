@@ -3,7 +3,6 @@ from collections import defaultdict
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from collections import defaultdict as _defaultdict
 from sqlalchemy import desc
 from ..models import WorkflowRun, TraceStep, LLMCall, EvaluationResult, FailureClassification, Incident, IncidentStatus, RunStatus
 from ..schemas import (

@@ -77,6 +77,9 @@ def group_incident(db: Session, run: WorkflowRun, classifications: list[FailureC
         if incident:
             incident.occurrence_count += 1
             incident.last_seen_at      = now
+            # Reopen if an operator acknowledged but the issue recurs
+            if incident.status == IncidentStatus.ACKNOWLEDGED.value:
+                incident.status = IncidentStatus.OPEN.value
             # Escalate severity if necessary
             if _SEVERITY_RANK.get(fc.severity, 0) > _SEVERITY_RANK.get(incident.severity, 0):
                 incident.severity = fc.severity
