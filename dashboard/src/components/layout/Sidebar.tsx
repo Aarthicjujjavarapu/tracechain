@@ -7,6 +7,7 @@ import { useBackendStatus } from "@/lib/useFetch";
 const NAV = [
   { href: "/dashboard", label: "Dashboard",    icon: IconDashboard },
   { href: "/runs",      label: "Runs",         icon: IconRuns      },
+  { href: "/incidents", label: "Incidents",    icon: IconIncidents },
   { href: "/prompts",   label: "Prompts",      icon: IconPrompts   },
   { href: "/metrics",   label: "Metrics",      icon: IconMetrics   },
   { href: "/examples",  label: "Examples",     icon: IconExamples  },
@@ -109,6 +110,15 @@ function IconMetrics({ active }: { active: boolean }) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={active ? "text-brand-400" : "text-slate-500"}>
       <path d="M2 13L5.5 8.5L8.5 11L12 5L14 7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+function IconIncidents({ active }: { active: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={active ? "text-brand-400" : "text-slate-500"}>
+      <path d="M8 2L14 13H2L8 2Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+      <path d="M8 6v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <circle cx="8" cy="11.5" r="0.75" fill="currentColor"/>
     </svg>
   );
 }

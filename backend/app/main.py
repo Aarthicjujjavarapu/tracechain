@@ -47,7 +47,7 @@ app.add_middleware(
 
 # ── Routers ──────────────────────────────────────────────────────────────────
 from .routes import health, runs, steps, llm_calls, prompts, evaluations, feedback, metrics  # noqa: E402
-from .routes import ingest, graph  # noqa: E402
+from .routes import ingest, graph, classifications, reliability, incidents  # noqa: E402
 from .ws.manager import manager as ws_manager  # noqa: E402
 from fastapi import WebSocket, WebSocketDisconnect, Query  # noqa: E402
 
@@ -61,6 +61,9 @@ app.include_router(feedback.router)
 app.include_router(metrics.router)
 app.include_router(ingest.router)
 app.include_router(graph.router)
+app.include_router(classifications.router)
+app.include_router(reliability.router)
+app.include_router(incidents.router)
 
 
 @app.websocket("/ws/live")

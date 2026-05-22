@@ -38,6 +38,8 @@ class RunOut(BaseModel):
     original_run_id: Optional[str]
     is_replay: bool
     metadata: Optional[dict[str, Any]]
+    reliability_score: Optional[int] = None
+    reliability_reasons: Optional[list[str]] = None
 
     model_config = {"from_attributes": True}
 
@@ -58,6 +60,8 @@ class RunOut(BaseModel):
             original_run_id=obj.original_run_id,
             is_replay=obj.is_replay,
             metadata=obj.metadata_,
+            reliability_score=obj.reliability_score,
+            reliability_reasons=obj.reliability_reasons,
         )
 
 
@@ -291,3 +295,55 @@ class TimeSeriesPoint(BaseModel):
 class HealthOut(BaseModel):
     status: str
     version: str = "0.1.0"
+
+
+# ─── FailureClassification ────────────────────────────────────────────────────
+
+class FailureClassificationOut(BaseModel):
+    id:             str
+    run_id:         str
+    step_id:        Optional[str]
+    category:       str
+    severity:       str
+    evidence:       Optional[dict[str, Any]]
+    recommendation: Optional[str]
+    created_at:     datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ─── Reliability ──────────────────────────────────────────────────────────────
+
+class ReliabilityOut(BaseModel):
+    run_id:  str
+    score:   int
+    reasons: list[str]
+
+
+# ─── Incidents ────────────────────────────────────────────────────────────────
+
+class IncidentOut(BaseModel):
+    id:                 str
+    title:              str
+    category:           str
+    severity:           str
+    status:             str
+    workflow_name:      Optional[str]
+    occurrence_count:   int
+    first_seen_at:      datetime
+    last_seen_at:       datetime
+    evidence:           Optional[dict[str, Any]]
+    recommended_action: Optional[str]
+    resolved_at:        Optional[datetime]
+    created_at:         datetime
+
+    model_config = {"from_attributes": True}
+
+
+class IncidentListOut(BaseModel):
+    items: list[IncidentOut]
+    total: int
+
+
+class IncidentUpdate(BaseModel):
+    status: str  # ACKNOWLEDGED | RESOLVED

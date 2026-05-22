@@ -12,17 +12,19 @@ import ReplayHistory from "@/components/runs/ReplayHistory";
 import ComparePanel from "@/components/runs/ComparePanel";
 import DiagnosticsPanel from "@/components/diagnostics/DiagnosticsPanel";
 import LiveFeed from "@/components/runs/LiveFeed";
+import FailureAnalysisPanel from "@/components/failures/FailureAnalysisPanel";
+import ReliabilityScore from "@/components/reliability/ReliabilityScore";
 import { api } from "@/lib/api";
 import type {
   WorkflowRun, TraceStep, LLMCall, EvaluationResult,
-  HumanFeedback, RunGraph, RunDiagnostics,
+  HumanFeedback, RunGraph, RunDiagnostics, FailureClassification,
 } from "@/types";
 import { format } from "date-fns";
 
 // ReactFlow uses browser-only APIs — must be dynamically imported
 const AgentGraph = dynamic(() => import("@/components/graph/AgentGraph"), { ssr: false });
 
-type Tab = "graph" | "trace" | "diagnostics" | "llm" | "eval" | "io" | "live";
+type Tab = "graph" | "trace" | "diagnostics" | "failures" | "llm" | "eval" | "io" | "live";
 
 export default function RunDetailPage() {
   const { id }  = useParams<{ id: string }>();
@@ -37,9 +39,10 @@ export default function RunDetailPage() {
   const [diagnostics, setDiagnostics] = useState<RunDiagnostics | null>(null);
   const [loadErr,     setLoadErr]     = useState<string | null>(null);
 
-  const [replays,      setReplays]      = useState<WorkflowRun[]>([]);
-  const [originalRun,  setOriginalRun]  = useState<WorkflowRun | null>(null);
-  const [originalEval, setOriginalEval] = useState<EvaluationResult | null>(null);
+  const [replays,         setReplays]         = useState<WorkflowRun[]>([]);
+  const [originalRun,     setOriginalRun]     = useState<WorkflowRun | null>(null);
+  const [originalEval,    setOriginalEval]    = useState<EvaluationResult | null>(null);
+  const [classifications, setClassifications] = useState<FailureClassification[]>([]);
 
   const [rating,     setRating]     = useState(0);
   const [comment,    setComment]    = useState("");
@@ -72,6 +75,9 @@ export default function RunDetailPage() {
 
       const replayData = await api.runs.replays(id).catch(() => null);
       if (replayData) setReplays(replayData.items);
+
+      const clsData = await api.runs.classifications(id).catch(() => null);
+      if (clsData) setClassifications(clsData);
 
       if (loadedRun.is_replay && loadedRun.original_run_id) {
         const [origR, origE] = await Promise.allSettled([
@@ -125,14 +131,19 @@ export default function RunDetailPage() {
   const totalCost   = llmCalls.reduce((s, c) => s + (c.estimated_cost ?? 0), 0);
   const totalTokens = llmCalls.reduce((s, c) => s + (c.total_tokens  ?? 0), 0);
 
+  const failureBadge = classifications.length > 0
+    ? classifications.some(c => c.severity === "CRITICAL" || c.severity === "HIGH") ? "!" : String(classifications.length)
+    : undefined;
+
   const TABS: { key: Tab; label: string; badge?: string }[] = [
-    { key: "graph",       label: "Agent Graph"                                            },
-    { key: "trace",       label: "Trace Timeline"                                         },
+    { key: "graph",       label: "Agent Graph"                                                 },
+    { key: "trace",       label: "Trace Timeline"                                              },
     { key: "live",        label: "Live Feed", badge: run.status === "running" ? "LIVE" : undefined },
-    { key: "diagnostics", label: "Diagnostics",  badge: diagnostics ? "NEW" : undefined   },
-    { key: "llm",         label: `LLM Calls (${llmCalls.length})`                         },
-    { key: "eval",        label: "Evaluation"                                             },
-    { key: "io",          label: "Input / Output"                                         },
+    { key: "failures",    label: "Failure Analysis", badge: failureBadge                       },
+    { key: "diagnostics", label: "Diagnostics",  badge: diagnostics ? "●" : undefined         },
+    { key: "llm",         label: `LLM Calls (${llmCalls.length})`                             },
+    { key: "eval",        label: "Evaluation"                                                  },
+    { key: "io",          label: "Input / Output"                                              },
   ];
 
   return (
@@ -179,7 +190,7 @@ export default function RunDetailPage() {
       </div>
 
       {/* Mini KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           ["Duration",     run.duration_ms != null ? `${run.duration_ms.toLocaleString()}ms` : "—"],
           ["Total Cost",   totalCost   > 0 ? `$${totalCost.toFixed(5)}`   : "—"],
@@ -191,6 +202,14 @@ export default function RunDetailPage() {
             <p className="text-lg font-bold text-white mt-1">{value}</p>
           </Card>
         ))}
+        <Card padding="sm">
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Reliability</p>
+          {run.reliability_score != null ? (
+            <ReliabilityScore score={run.reliability_score} compact />
+          ) : (
+            <p className="text-lg font-bold text-slate-600">—</p>
+          )}
+        </Card>
       </div>
 
       {/* Compare panel */}
@@ -269,6 +288,21 @@ export default function RunDetailPage() {
             ? <p className="text-slate-500 text-sm">No steps recorded for this run.</p>
             : <TraceTimeline steps={steps} />}
         </Card>
+      )}
+
+      {activeTab === "failures" && (
+        <div className="space-y-4">
+          {run.reliability_score != null && (
+            <Card padding="sm">
+              <h2 className="text-sm font-medium text-slate-300 mb-4">Reliability Score</h2>
+              <ReliabilityScore score={run.reliability_score} reasons={run.reliability_reasons ?? []} />
+            </Card>
+          )}
+          <Card>
+            <h2 className="text-sm font-medium text-slate-300 mb-5">Failure Analysis</h2>
+            <FailureAnalysisPanel classifications={classifications} />
+          </Card>
+        </div>
       )}
 
       {activeTab === "diagnostics" && (

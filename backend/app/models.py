@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from sqlalchemy import (
     Column, String, Text, Boolean, Integer, Float, BigInteger,
-    DateTime, ForeignKey, Enum as SAEnum
+    DateTime, ForeignKey, Enum as SAEnum, Table
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
@@ -38,6 +38,37 @@ class LLMStatus(str, enum.Enum):
     failed  = "failed"
 
 
+class FailureCategory(str, enum.Enum):
+    RETRIEVAL_FAILURE    = "RETRIEVAL_FAILURE"
+    LOW_RELEVANCE_CONTEXT = "LOW_RELEVANCE_CONTEXT"
+    CONTEXT_WINDOW_RISK  = "CONTEXT_WINDOW_RISK"
+    OUTPUT_TRUNCATION    = "OUTPUT_TRUNCATION"
+    TOOL_CALL_FAILURE    = "TOOL_CALL_FAILURE"
+    TOOL_ARGUMENT_ERROR  = "TOOL_ARGUMENT_ERROR"
+    RETRY_LOOP           = "RETRY_LOOP"
+    MODEL_TIMEOUT        = "MODEL_TIMEOUT"
+    MODEL_RATE_LIMIT     = "MODEL_RATE_LIMIT"
+    LATENCY_SPIKE        = "LATENCY_SPIKE"
+    COST_SPIKE           = "COST_SPIKE"
+    HALLUCINATION_RISK   = "HALLUCINATION_RISK"
+    VALIDATION_FAILURE   = "VALIDATION_FAILURE"
+    PROMPT_REGRESSION    = "PROMPT_REGRESSION"
+    UNKNOWN_FAILURE      = "UNKNOWN_FAILURE"
+
+
+class FailureSeverity(str, enum.Enum):
+    LOW      = "LOW"
+    MEDIUM   = "MEDIUM"
+    HIGH     = "HIGH"
+    CRITICAL = "CRITICAL"
+
+
+class IncidentStatus(str, enum.Enum):
+    OPEN         = "OPEN"
+    ACKNOWLEDGED = "ACKNOWLEDGED"
+    RESOLVED     = "RESOLVED"
+
+
 # ─── Models ───────────────────────────────────────────────────────────────────
 
 class WorkflowRun(Base):
@@ -54,14 +85,17 @@ class WorkflowRun(Base):
     duration_ms     = Column(Integer, nullable=True)
     total_cost      = Column(Float, nullable=True)
     total_tokens    = Column(Integer, nullable=True)
-    original_run_id = Column(UUID(as_uuid=False), ForeignKey("workflow_runs.id"), nullable=True)
-    is_replay       = Column(Boolean, nullable=False, default=False)
-    metadata_       = Column("metadata", JSONB, nullable=True)
+    original_run_id     = Column(UUID(as_uuid=False), ForeignKey("workflow_runs.id"), nullable=True)
+    is_replay           = Column(Boolean, nullable=False, default=False)
+    metadata_           = Column("metadata", JSONB, nullable=True)
+    reliability_score   = Column(Integer, nullable=True)
+    reliability_reasons = Column(JSONB, nullable=True)
 
     steps      = relationship("TraceStep", back_populates="run", cascade="all, delete-orphan")
     llm_calls  = relationship("LLMCall", back_populates="run", cascade="all, delete-orphan")
     evaluations = relationship("EvaluationResult", back_populates="run", cascade="all, delete-orphan")
     feedback   = relationship("HumanFeedback", back_populates="run", cascade="all, delete-orphan")
+    classifications = relationship("FailureClassification", back_populates="run", cascade="all, delete-orphan")
 
 
 class TraceStep(Base):
@@ -174,3 +208,52 @@ class SpanEvent(Base):
     timestamp_ns   = Column(BigInteger,  nullable=False, default=0)
     duration_ns    = Column(BigInteger,  nullable=True)
     created_at     = Column(DateTime(timezone=True), nullable=False, default=_now)
+
+
+# ─── Failure Classification ───────────────────────────────────────────────────
+
+class FailureClassification(Base):
+    __tablename__ = "failure_classifications"
+
+    id             = Column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    run_id         = Column(UUID(as_uuid=False), ForeignKey("workflow_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    step_id        = Column(UUID(as_uuid=False), nullable=True)
+    category       = Column(String(64), nullable=False, index=True)
+    severity       = Column(String(16), nullable=False, default=FailureSeverity.MEDIUM.value)
+    evidence       = Column(JSONB, nullable=True)
+    recommendation = Column(Text, nullable=True)
+    created_at     = Column(DateTime(timezone=True), nullable=False, default=_now)
+
+    run = relationship("WorkflowRun", back_populates="classifications")
+
+
+# ─── Incidents ────────────────────────────────────────────────────────────────
+
+# Association table — many incidents ↔ many runs
+incident_runs = Table(
+    "incident_runs",
+    Base.metadata,
+    Column("incident_id", UUID(as_uuid=False), ForeignKey("incidents.id",       ondelete="CASCADE"), primary_key=True),
+    Column("run_id",      UUID(as_uuid=False), ForeignKey("workflow_runs.id",    ondelete="CASCADE"), primary_key=True),
+    Column("linked_at",   DateTime(timezone=True), nullable=False, default=_now),
+)
+
+
+class Incident(Base):
+    __tablename__ = "incidents"
+
+    id                 = Column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    title              = Column(String(255), nullable=False)
+    category           = Column(String(64),  nullable=False, index=True)
+    severity           = Column(String(16),  nullable=False, default=FailureSeverity.MEDIUM.value)
+    status             = Column(String(16),  nullable=False, default=IncidentStatus.OPEN.value, index=True)
+    workflow_name      = Column(String(255), nullable=True, index=True)
+    occurrence_count   = Column(Integer,     nullable=False, default=1)
+    first_seen_at      = Column(DateTime(timezone=True), nullable=False, default=_now)
+    last_seen_at       = Column(DateTime(timezone=True), nullable=False, default=_now)
+    evidence           = Column(JSONB, nullable=True)
+    recommended_action = Column(Text,  nullable=True)
+    resolved_at        = Column(DateTime(timezone=True), nullable=True)
+    created_at         = Column(DateTime(timezone=True), nullable=False, default=_now)
+
+    runs = relationship("WorkflowRun", secondary=incident_runs, backref="incidents")

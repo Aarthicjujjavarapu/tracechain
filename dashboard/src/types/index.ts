@@ -20,6 +20,43 @@ export interface WorkflowRun {
   original_run_id: string | null;
   is_replay: boolean;
   metadata: Record<string, unknown> | null;
+  reliability_score: number | null;
+  reliability_reasons: string[] | null;
+}
+
+// ── Failure Classification ─────────────────────────────────────────────────────
+
+export type FailureSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
+export interface FailureClassification {
+  id:             string;
+  run_id:         string;
+  step_id:        string | null;
+  category:       string;
+  severity:       FailureSeverity;
+  evidence:       Record<string, unknown> | null;
+  recommendation: string | null;
+  created_at:     string;
+}
+
+// ── Incidents ─────────────────────────────────────────────────────────────────
+
+export type IncidentStatus = "OPEN" | "ACKNOWLEDGED" | "RESOLVED";
+
+export interface Incident {
+  id:                 string;
+  title:              string;
+  category:           string;
+  severity:           FailureSeverity;
+  status:             IncidentStatus;
+  workflow_name:      string | null;
+  occurrence_count:   number;
+  first_seen_at:      string;
+  last_seen_at:       string;
+  evidence:           Record<string, unknown> | null;
+  recommended_action: string | null;
+  resolved_at:        string | null;
+  created_at:         string;
 }
 
 export interface TraceStep {

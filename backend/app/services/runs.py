@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -6,6 +7,8 @@ from fastapi import HTTPException
 
 from ..models import WorkflowRun, RunStatus
 from ..schemas import RunCreate, RunComplete, RunFail
+
+logger = logging.getLogger("tracechain")
 
 
 def create_run(db: Session, data: RunCreate) -> WorkflowRun:
@@ -67,6 +70,7 @@ def complete_run(db: Session, run_id: str, data: RunComplete) -> WorkflowRun:
         run.total_tokens = data.total_tokens
     db.commit()
     db.refresh(run)
+    _post_run_analysis(db, run)
     return run
 
 
@@ -80,7 +84,44 @@ def fail_run(db: Session, run_id: str, data: RunFail) -> WorkflowRun:
     run.error_message = data.error_message
     db.commit()
     db.refresh(run)
+    _post_run_analysis(db, run)
     return run
+
+
+def _post_run_analysis(db: Session, run: WorkflowRun) -> None:
+    """
+    Run classification, reliability scoring, and incident grouping after a run completes.
+
+    Uses a nested transaction (savepoint) so that failures don't corrupt the
+    outer session, and expire_on_commit=False on a temporary session so that
+    objects loaded by the outer request are not expired by inner commits.
+    """
+    try:
+        from .classification import run_classification
+        from .reliability import score_run
+        from .incidents import group_incident
+
+        run_id = run.id  # capture before any potential expiry
+
+        # Re-query in a sub-transaction so expiry doesn't affect the outer request's objects
+        with db.begin_nested():
+            classifications = run_classification(db, run_id)
+
+        with db.begin_nested():
+            score_run(db, run_id)
+
+        with db.begin_nested():
+            fresh_run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
+            if fresh_run:
+                group_incident(db, fresh_run, classifications)
+
+        db.commit()
+    except Exception:
+        logger.exception("post-run analysis failed for run %s", run.id)
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
 
 def replay_run(db: Session, run_id: str) -> WorkflowRun:

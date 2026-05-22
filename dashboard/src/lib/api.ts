@@ -2,6 +2,7 @@ import type {
   WorkflowRun, TraceStep, LLMCall, PromptVersion,
   EvaluationResult, HumanFeedback, OverviewMetrics,
   RunGraph, RunDiagnostics,
+  FailureClassification, Incident,
 } from "@/types";
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -50,6 +51,22 @@ export const api = {
     diagnostics: (id: string) => req<RunDiagnostics>(`/v1/runs/${id}/diagnostics`),
     submitFeedback: (id: string, body: { rating: number; comment?: string }) =>
       req<HumanFeedback>(`/runs/${id}/feedback`, { method: "POST", body: JSON.stringify(body) }),
+    classifications: (id: string) => req<FailureClassification[]>(`/runs/${id}/classifications`),
+    reliability:     (id: string) => req<{ run_id: string; score: number; reasons: string[] }>(`/runs/${id}/reliability`),
+  },
+
+  // ── incidents ─────────────────────────────────────────────────────────────
+  incidents: {
+    list: (params?: Record<string, string>) => {
+      const qs = params && Object.keys(params).length
+        ? "?" + new URLSearchParams(params).toString()
+        : "";
+      return req<{ items: Incident[]; total: number }>(`/incidents${qs}`);
+    },
+    acknowledge: (id: string) =>
+      req<Incident>(`/incidents/${id}`, { method: "PATCH", body: JSON.stringify({ status: "ACKNOWLEDGED" }) }),
+    resolve: (id: string) =>
+      req<Incident>(`/incidents/${id}`, { method: "PATCH", body: JSON.stringify({ status: "RESOLVED" }) }),
   },
 
   // ── prompts ───────────────────────────────────────────────────────────────
