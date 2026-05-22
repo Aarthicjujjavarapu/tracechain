@@ -21,9 +21,12 @@ export default function MetricsPage() {
   const [runsTs,     setRunsTs]    = useState<PT[]>([]);
   const [qualityTs,  setQualityTs] = useState<PT[]>([]);
   const [tokensTs,   setTokensTs]  = useState<PT[]>([]);
-  const [costModel,  setCostModel] = useState<LabelVal[]>([]);
-  const [failures,   setFailures]  = useState<LabelVal[]>([]);
-  const [latencyWf,  setLatencyWf] = useState<LabelVal[]>([]);
+  const [costModel,       setCostModel]       = useState<LabelVal[]>([]);
+  const [failures,        setFailures]        = useState<LabelVal[]>([]);
+  const [latencyWf,       setLatencyWf]       = useState<LabelVal[]>([]);
+  const [reliabilityTs,   setReliabilityTs]   = useState<PT[]>([]);
+  const [clsBreakdown,    setClsBreakdown]    = useState<{ category: string; count: number; pct: number }[]>([]);
+  const [incidentSummary, setIncidentSummary] = useState<{ open: number; acknowledged: number; resolved: number; total: number } | null>(null);
   const [loading,    setLoading]   = useState(true);
 
   const { perRun, perDay, savePerRun, savePerDay } = useBudget();
@@ -51,7 +54,10 @@ export default function MetricsPage() {
       api.metrics.cost(days),
       api.metrics.failures(days),
       api.metrics.latency(days),
-    ]).then(([lat, cost, sr, runs, quality, tokens, costM, fail, latWf]) => {
+      api.metrics.timeseries.reliability(days),
+      api.metrics.classificationBreakdown(days),
+      api.metrics.incidentSummary(),
+    ]).then(([lat, cost, sr, runs, quality, tokens, costM, fail, latWf, rel, cls, inc]) => {
       if (lat.status     === "fulfilled") setLatencyTs(lat.value);
       if (cost.status    === "fulfilled") setCostTs(cost.value);
       if (sr.status      === "fulfilled") setSrTs(sr.value);
@@ -64,6 +70,9 @@ export default function MetricsPage() {
         setFailures(fail.value.map((r) => ({ label: r.step_name, value: r.failure_count })));
       if (latWf.status   === "fulfilled")
         setLatencyWf(latWf.value.map((r) => ({ label: r.workflow_name, value: r.avg_latency_ms })));
+      if (rel.status     === "fulfilled") setReliabilityTs(rel.value);
+      if (cls.status     === "fulfilled") setClsBreakdown(cls.value);
+      if (inc.status     === "fulfilled") setIncidentSummary(inc.value);
       setLoading(false);
     });
   }, [days]);
@@ -216,7 +225,58 @@ export default function MetricsPage() {
         </Card>
       </div>
 
-      {/* Row 4 — breakdowns */}
+      {/* Row 4 — reliability + incident summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <h2 className="text-sm font-medium text-slate-300 mb-4">Avg Reliability Score per Day</h2>
+          {loading ? <Skeleton /> : empty(reliabilityTs) ? <Empty /> : (
+            <SimpleAreaChart
+              data={reliabilityTs} color="#10b981" valueLabel="score"
+              formatValue={(v) => String(Math.round(v))} height={180}
+            />
+          )}
+        </Card>
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-medium text-slate-300">Failure Category Breakdown</h2>
+            {incidentSummary && incidentSummary.total > 0 && (
+              <div className="flex items-center gap-3 text-xs">
+                {incidentSummary.open > 0 && (
+                  <span className="text-red-400">{incidentSummary.open} open</span>
+                )}
+                {incidentSummary.acknowledged > 0 && (
+                  <span className="text-amber-400">{incidentSummary.acknowledged} ack</span>
+                )}
+                {incidentSummary.resolved > 0 && (
+                  <span className="text-emerald-400">{incidentSummary.resolved} resolved</span>
+                )}
+              </div>
+            )}
+          </div>
+          {loading ? <Skeleton /> : empty(clsBreakdown) ? <Empty /> : (
+            <div className="space-y-2 overflow-y-auto max-h-56">
+              {clsBreakdown.map((row) => (
+                <div key={row.category} className="flex items-center gap-3">
+                  <span className="text-xs text-slate-400 w-44 shrink-0 truncate" title={row.category}>
+                    {row.category.replace(/_/g, " ")}
+                  </span>
+                  <div className="flex-1 bg-[#1a1d2e] rounded-full h-2 overflow-hidden">
+                    <div
+                      className="h-full bg-red-500/70 rounded-full transition-all duration-500"
+                      style={{ width: `${row.pct}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-slate-500 w-16 text-right tabular-nums">
+                    {row.count} ({row.pct}%)
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Row 5 — cost + step failures */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <h2 className="text-sm font-medium text-slate-300 mb-4">Cost by Model</h2>
@@ -240,7 +300,7 @@ export default function MetricsPage() {
         </Card>
       </div>
 
-      {/* Row 5 — latency by workflow */}
+      {/* Row 6 — latency by workflow */}
       <Card>
         <h2 className="text-sm font-medium text-slate-300 mb-4">Avg Latency by Workflow</h2>
         {loading ? <Skeleton /> : empty(latencyWf) ? <Empty /> : (

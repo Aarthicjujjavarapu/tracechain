@@ -3,10 +3,12 @@ from collections import defaultdict
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from ..models import WorkflowRun, TraceStep, LLMCall, EvaluationResult, RunStatus
+from sqlalchemy import desc
+from ..models import WorkflowRun, TraceStep, LLMCall, EvaluationResult, FailureClassification, Incident, IncidentStatus, RunStatus
 from ..schemas import (
     OverviewMetrics, LatencyPoint, CostPoint,
     FailurePoint, TimeSeriesPoint,
+    ClassificationBreakdownPoint, IncidentSummary,
 )
 
 
@@ -278,3 +280,75 @@ def get_tokens_timeseries(db: Session, days: int = 14) -> list[TimeSeriesPoint]:
         TimeSeriesPoint(date=day, value=float(total))
         for day, total in sorted(daily.items())
     ]
+
+
+def get_reliability_timeseries(
+    db: Session,
+    days: int = 14,
+    workflow_name: str | None = None,
+) -> list[TimeSeriesPoint]:
+    """Daily average reliability score, optionally filtered by workflow."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    runs = (
+        db.query(WorkflowRun.started_at, WorkflowRun.reliability_score)
+        .filter(
+            WorkflowRun.started_at >= cutoff,
+            WorkflowRun.reliability_score.isnot(None),
+        )
+    )
+    if workflow_name:
+        runs = runs.filter(WorkflowRun.workflow_name == workflow_name)
+    runs = runs.all()
+
+    daily: dict[str, list[int]] = defaultdict(list)
+    for run in runs:
+        day = run.started_at.strftime("%Y-%m-%d")
+        daily[day].append(run.reliability_score)
+
+    return [
+        TimeSeriesPoint(date=day, value=round(sum(scores) / len(scores), 1))
+        for day, scores in sorted(daily.items())
+    ]
+
+
+def get_classification_breakdown(
+    db: Session,
+    days: int = 14,
+    workflow_name: str | None = None,
+) -> list[ClassificationBreakdownPoint]:
+    """Count of each failure category over the last N days, ordered by frequency."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    q = (
+        db.query(
+            FailureClassification.category,
+            func.count(FailureClassification.id).label("cnt"),
+        )
+        .join(WorkflowRun, FailureClassification.run_id == WorkflowRun.id)
+        .filter(WorkflowRun.started_at >= cutoff)
+    )
+    if workflow_name:
+        q = q.filter(WorkflowRun.workflow_name == workflow_name)
+    rows = q.group_by(FailureClassification.category).order_by(desc("cnt")).all()
+
+    total = sum(r.cnt for r in rows) or 1
+    return [
+        ClassificationBreakdownPoint(
+            category=r.category,
+            count=r.cnt,
+            pct=round(r.cnt / total * 100, 1),
+        )
+        for r in rows
+    ]
+
+
+def get_incident_summary(db: Session) -> IncidentSummary:
+    """Count of incidents by status."""
+    open_count = db.query(func.count(Incident.id)).filter(Incident.status == IncidentStatus.OPEN.value).scalar() or 0
+    ack_count  = db.query(func.count(Incident.id)).filter(Incident.status == IncidentStatus.ACKNOWLEDGED.value).scalar() or 0
+    res_count  = db.query(func.count(Incident.id)).filter(Incident.status == IncidentStatus.RESOLVED.value).scalar() or 0
+    return IncidentSummary(
+        open=open_count,
+        acknowledged=ack_count,
+        resolved=res_count,
+        total=open_count + ack_count + res_count,
+    )

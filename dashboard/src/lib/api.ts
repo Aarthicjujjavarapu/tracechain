@@ -103,6 +103,20 @@ export const api = {
       runs:        (days = 14) => req<{ date: string; value: number }[]>(`/metrics/timeseries/runs?days=${days}`),
       quality:     (days = 14) => req<{ date: string; value: number }[]>(`/metrics/timeseries/quality?days=${days}`),
       tokens:      (days = 14) => req<{ date: string; value: number }[]>(`/metrics/timeseries/tokens?days=${days}`),
+      reliability: (days = 14, workflowName?: string) => {
+        const qs = workflowName ? `&workflow_name=${encodeURIComponent(workflowName)}` : "";
+        return req<{ date: string; value: number }[]>(`/metrics/timeseries/reliability?days=${days}${qs}`);
+      },
     },
+
+    classificationBreakdown: (days = 14, workflowName?: string) => {
+      const qs = workflowName ? `&workflow_name=${encodeURIComponent(workflowName)}` : "";
+      return req<{ category: string; count: number; pct: number }[]>(
+        `/metrics/failures/classification?days=${days}${qs}`
+      );
+    },
+
+    incidentSummary: () =>
+      req<{ open: number; acknowledged: number; resolved: number; total: number }>("/metrics/incidents/summary"),
   },
 } as const;

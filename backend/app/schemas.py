@@ -347,3 +347,18 @@ class IncidentListOut(BaseModel):
 
 class IncidentUpdate(BaseModel):
     status: str  # ACKNOWLEDGED | RESOLVED
+
+
+# ─── Reliability Analytics ────────────────────────────────────────────────────
+
+class ClassificationBreakdownPoint(BaseModel):
+    category: str
+    count: int
+    pct: float
+
+
+class IncidentSummary(BaseModel):
+    open: int
+    acknowledged: int
+    resolved: int
+    total: int

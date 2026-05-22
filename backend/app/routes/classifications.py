@@ -22,4 +22,6 @@ def get_classifications(run_id: str, db: Session = Depends(get_db)):
 @router.post("/{run_id}/classifications/refresh", response_model=list[FailureClassificationOut])
 def refresh_classifications(run_id: str, db: Session = Depends(get_db)):
     """Re-run the classifier and return fresh results."""
-    return run_classification(db, run_id)
+    results = run_classification(db, run_id)
+    db.commit()
+    return results

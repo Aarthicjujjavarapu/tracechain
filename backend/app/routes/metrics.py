@@ -1,8 +1,12 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..schemas import OverviewMetrics, LatencyPoint, CostPoint, FailurePoint, TimeSeriesPoint
+from ..schemas import (
+    OverviewMetrics, LatencyPoint, CostPoint, FailurePoint, TimeSeriesPoint,
+    ClassificationBreakdownPoint, IncidentSummary,
+)
 from ..services import metrics as metrics_svc
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
@@ -61,3 +65,26 @@ def quality_timeseries(days: int = Query(14, ge=1, le=90), db: Session = Depends
 @router.get("/timeseries/tokens", response_model=list[TimeSeriesPoint])
 def tokens_timeseries(days: int = Query(14, ge=1, le=90), db: Session = Depends(get_db)):
     return metrics_svc.get_tokens_timeseries(db, days)
+
+
+@router.get("/timeseries/reliability", response_model=list[TimeSeriesPoint])
+def reliability_timeseries(
+    days: int = Query(14, ge=1, le=90),
+    workflow_name: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    return metrics_svc.get_reliability_timeseries(db, days, workflow_name)
+
+
+@router.get("/failures/classification", response_model=list[ClassificationBreakdownPoint])
+def classification_breakdown(
+    days: int = Query(14, ge=1, le=90),
+    workflow_name: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    return metrics_svc.get_classification_breakdown(db, days, workflow_name)
+
+
+@router.get("/incidents/summary", response_model=IncidentSummary)
+def incident_summary(db: Session = Depends(get_db)):
+    return metrics_svc.get_incident_summary(db)

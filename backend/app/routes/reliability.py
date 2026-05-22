@@ -20,4 +20,5 @@ def get_reliability(run_id: str, db: Session = Depends(get_db)):
         )
     # Compute on demand if not already cached
     score, reasons = score_run(db, run_id)
+    db.commit()
     return ReliabilityOut(run_id=run_id, score=score, reasons=reasons)

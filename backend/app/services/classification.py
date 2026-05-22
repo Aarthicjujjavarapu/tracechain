@@ -109,7 +109,7 @@ def classify_run(db: Session, run: WorkflowRun) -> list[FailureClassification]:
 
     # ── OUTPUT_TRUNCATION ──────────────────────────────────────────────────────
     for call in calls:
-        if call.output_tokens and call.input_tokens:
+        if call.output_tokens:
             # If output_tokens equals the model's max_tokens parameter it's likely truncated
             max_out = _MODEL_MAX_TOKENS.get(call.model, 4096)
             if call.output_tokens >= min(4096, max_out * 0.95):
@@ -230,6 +230,44 @@ def classify_run(db: Session, run: WorkflowRun) -> list[FailureClassification]:
             {"total_cost_usd": round(run.total_cost, 5), "most_expensive_model": most_expensive_model},
             "Switch to a more cost-effective model for simpler tasks or add prompt caching.",
         ))
+
+    # ── PROMPT_REGRESSION ─────────────────────────────────────────────────────
+    # Compares current run quality against the rolling average of the last 30
+    # successful runs for the same workflow.  Requires a live DB session.
+    if db is not None and run.workflow_name and evals:
+        current_quality_scores = [e.quality_score for e in evals if e.quality_score is not None]
+        if current_quality_scores:
+            current_quality = sum(current_quality_scores) / len(current_quality_scores)
+            historical_evals = (
+                db.query(EvaluationResult)
+                .join(WorkflowRun, EvaluationResult.run_id == WorkflowRun.id)
+                .filter(
+                    WorkflowRun.workflow_name == run.workflow_name,
+                    WorkflowRun.id            != run.id,
+                    WorkflowRun.status        == RunStatus.success,
+                )
+                .order_by(WorkflowRun.started_at.desc())
+                .limit(30)
+                .all()
+            )
+            if len(historical_evals) >= 5:
+                hist_scores = [e.quality_score for e in historical_evals if e.quality_score is not None]
+                if hist_scores:
+                    hist_avg = sum(hist_scores) / len(hist_scores)
+                    delta = hist_avg - current_quality
+                    if delta >= 0.2:
+                        sev = FailureSeverity.CRITICAL if delta >= 0.4 else FailureSeverity.HIGH
+                        results.append(_make(
+                            run.id, FailureCategory.PROMPT_REGRESSION, sev,
+                            {
+                                "current_quality":     round(current_quality, 3),
+                                "historical_avg":      round(hist_avg, 3),
+                                "delta":               round(delta, 3),
+                                "history_sample_size": len(hist_scores),
+                            },
+                            "Review recent prompt changes and roll back if quality dropped. "
+                            "Compare prompt versions to identify the regression source.",
+                        ))
 
     # ── UNKNOWN_FAILURE ────────────────────────────────────────────────────────
     if run.status == RunStatus.failed and not results:
