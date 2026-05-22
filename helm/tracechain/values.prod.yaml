@@ -1,0 +1,53 @@
+# Production override example
+# Usage: helm upgrade --install tracechain ./helm/tracechain -f helm/tracechain/values.prod.yaml \
+#          --set secrets.openaiApiKey=$OPENAI_API_KEY \
+#          --set database.external.url=$DATABASE_URL
+
+backend:
+  replicaCount: 2
+  image:
+    pullPolicy: Always
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 65
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+dashboard:
+  replicaCount: 2
+  image:
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+database:
+  type: external
+  # Set via --set database.external.url=postgresql://...
+  external:
+    url: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  dashboardHost: tracechain.example.com
+  backendHost: api.tracechain.example.com
+  tls:
+    - secretName: tracechain-tls
+      hosts:
+        - tracechain.example.com
+        - api.tracechain.example.com

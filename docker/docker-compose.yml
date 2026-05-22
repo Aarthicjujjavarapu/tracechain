@@ -1,0 +1,61 @@
+version: "3.9"
+
+# One-command self-hosted TraceChain:
+#   docker compose -f docker/docker-compose.yml up
+#
+# Services:
+#   postgres  — persistent storage
+#   backend   — FastAPI ingestion + query API  (port 8000)
+#   dashboard — React dashboard                (port 3000)
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       tracechain
+      POSTGRES_USER:     tracechain
+      POSTGRES_PASSWORD: tracechain_secret
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tracechain"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://tracechain:tracechain_secret@postgres:5432/tracechain
+      TRACECHAIN_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  dashboard:
+    build:
+      context: ../dashboard
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:8000
+      VITE_WS_URL:  ws://localhost:8000/ws/live
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

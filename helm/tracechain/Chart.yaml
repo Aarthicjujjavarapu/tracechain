@@ -1,0 +1,17 @@
+apiVersion: v2
+name: tracechain
+description: Reliability-first observability platform for LLM workflows
+type: application
+version: 0.2.0
+appVersion: "0.2.0"
+keywords:
+  - llm
+  - observability
+  - tracing
+  - ai
+home: https://github.com/Aarthicjujjavarapu/tracechain
+sources:
+  - https://github.com/Aarthicjujjavarapu/tracechain
+maintainers:
+  - name: TraceChain
+    email: aarthij029@gmail.com

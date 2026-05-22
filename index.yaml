@@ -1,0 +1,25 @@
+apiVersion: v1
+entries:
+  tracechain:
+  - apiVersion: v2
+    appVersion: 0.2.0
+    created: "2026-05-22T03:04:07.419320038Z"
+    description: Reliability-first observability platform for LLM workflows
+    digest: e179cf62c01b57e998f734062478749d05d6dac30fa0921c244dafcda97ee8ef
+    home: https://github.com/Aarthicjujjavarapu/tracechain
+    keywords:
+    - llm
+    - observability
+    - tracing
+    - ai
+    maintainers:
+    - email: aarthij029@gmail.com
+      name: TraceChain
+    name: tracechain
+    sources:
+    - https://github.com/Aarthicjujjavarapu/tracechain
+    type: application
+    urls:
+    - https://aarthicjujjavarapu.github.io/tracechain/tracechain-0.2.0.tgz
+    version: 0.2.0
+generated: "2026-05-22T03:04:07.418583638Z"
