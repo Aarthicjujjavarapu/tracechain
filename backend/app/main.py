@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -25,6 +26,10 @@ def run_migrations():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     run_migrations()
+    # Give the WS manager a reference to the running event loop so sync
+    # route handlers can fire broadcasts via fire_event_sync().
+    from .ws.manager import manager as ws_manager
+    ws_manager.set_loop(asyncio.get_running_loop())
     logger.info("TraceChain backend started.")
     yield
     logger.info("TraceChain backend shutting down.")

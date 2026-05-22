@@ -25,6 +25,11 @@ class ConnectionManager:
     def __init__(self) -> None:
         # map of websocket → (queue, optional run_id filter)
         self._clients: dict[WebSocket, tuple[asyncio.Queue, Optional[str]]] = {}
+        # The running event loop — set once at startup so sync code can broadcast
+        self._loop: asyncio.AbstractEventLoop | None = None
+
+    def set_loop(self, loop: asyncio.AbstractEventLoop) -> None:
+        self._loop = loop
 
     async def connect(self, ws: WebSocket, run_id_filter: Optional[str] = None) -> None:
         await ws.accept()
@@ -63,6 +68,19 @@ class ConnectionManager:
                 await ws.send_json(event)
         except Exception:
             self.disconnect(ws)
+
+
+    def fire_event_sync(self, event: dict) -> None:
+        """Thread-safe fire-and-forget broadcast from synchronous route handlers.
+
+        FastAPI runs sync routes in a thread pool; asyncio.run_coroutine_threadsafe
+        schedules the coroutine onto the main uvicorn event loop safely.
+        """
+        if self._loop and self._loop.is_running():
+            try:
+                asyncio.run_coroutine_threadsafe(self.broadcast(event), self._loop)
+            except Exception:
+                pass
 
 
 # Singleton — shared across the FastAPI app via dependency injection

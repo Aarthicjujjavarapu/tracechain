@@ -7,8 +7,22 @@ from fastapi import HTTPException
 
 from ..models import WorkflowRun, RunStatus
 from ..schemas import RunCreate, RunComplete, RunFail
+from ..ws.manager import manager as ws_manager
 
 logger = logging.getLogger("tracechain")
+
+
+def _broadcast(event_type: str, run: WorkflowRun, **extra: object) -> None:
+    ts = (run.ended_at or run.started_at)
+    payload: dict = {
+        "event_type":    event_type,
+        "run_id":        run.id,
+        "workflow_name": run.workflow_name,
+        "status":        run.status.value if hasattr(run.status, "value") else str(run.status),
+        "timestamp":     ts.isoformat() if ts else None,
+        **extra,
+    }
+    ws_manager.fire_event_sync(payload)
 
 
 def create_run(db: Session, data: RunCreate) -> WorkflowRun:
@@ -22,6 +36,7 @@ def create_run(db: Session, data: RunCreate) -> WorkflowRun:
     db.add(run)
     db.commit()
     db.refresh(run)
+    _broadcast("run.created", run)
     return run
 
 
@@ -71,6 +86,9 @@ def complete_run(db: Session, run_id: str, data: RunComplete) -> WorkflowRun:
     db.commit()
     db.refresh(run)
     _post_run_analysis(db, run)
+    _broadcast("run.completed", run,
+               duration_ms=run.duration_ms,
+               reliability_score=run.reliability_score)
     return run
 
 
@@ -85,6 +103,9 @@ def fail_run(db: Session, run_id: str, data: RunFail) -> WorkflowRun:
     db.commit()
     db.refresh(run)
     _post_run_analysis(db, run)
+    _broadcast("run.failed", run,
+               error_message=run.error_message,
+               reliability_score=run.reliability_score)
     return run
 
 
@@ -155,4 +176,5 @@ def replay_run(db: Session, run_id: str) -> WorkflowRun:
     db.add(replay)
     db.commit()
     db.refresh(replay)
+    _broadcast("run.replayed", replay, original_run_id=original.id)
     return replay
